@@ -359,53 +359,75 @@ export async function getPaymentStatusService(params: {
   barbershopId: string;
   transactionId: string;
 }) {
+  // Tentar buscar no banco primeiro
   const tx = await prisma.payment_transactions.findFirst({
     where: { id: params.transactionId, barbershop_id: params.barbershopId },
-  });
-  if (!tx) throw notFound("Transação não encontrada");
+  }).catch(() => null);
 
-  // Se tem mp_payment_id, consultar status atualizado no MP
-  if (tx.mp_payment_id) {
-    try {
-      const mpPay = await mpPayment.get({ id: tx.mp_payment_id });
-      const newStatus = mapMpStatus(mpPay.status ?? "");
+  if (tx) {
+    // Se tem mp_payment_id, consultar status atualizado no MP
+    if (tx.mp_payment_id) {
+      try {
+        const mpPay = await mpPayment.get({ id: tx.mp_payment_id });
+        const newStatus = mapMpStatus(mpPay.status ?? "");
 
-      if (newStatus !== tx.status) {
-        await prisma.payment_transactions.update({
-          where: { id: tx.id },
-          data: {
-            status: newStatus as any,
-            status_raw: mpPay.status,
-            paid_at: mpPay.status === "approved" ? new Date() : tx.paid_at,
-            method: mapMpPaymentMethod(mpPay.payment_method_id ?? ""),
-            updated_at: new Date(),
-          },
-        });
+        if (newStatus !== tx.status) {
+          await prisma.payment_transactions.update({
+            where: { id: tx.id },
+            data: {
+              status: newStatus as any,
+              status_raw: mpPay.status,
+              paid_at: mpPay.status === "approved" ? new Date() : tx.paid_at,
+              method: mapMpPaymentMethod(mpPay.payment_method_id ?? ""),
+              updated_at: new Date(),
+            },
+          });
+        }
+
+        return {
+          transactionId: tx.id,
+          mpPaymentId: tx.mp_payment_id,
+          status: newStatus,
+          statusRaw: mpPay.status,
+          amount: Number(tx.amount),
+          method: mapMpPaymentMethod(mpPay.payment_method_id ?? ""),
+          paidAt: mpPay.status === "approved" ? (tx.paid_at ?? new Date()) : null,
+        };
+      } catch {
+        // Se falhou ao consultar MP, retornar dados locais
       }
-
-      return {
-        transactionId: tx.id,
-        mpPaymentId: tx.mp_payment_id,
-        status: newStatus,
-        statusRaw: mpPay.status,
-        amount: Number(tx.amount),
-        method: mapMpPaymentMethod(mpPay.payment_method_id ?? ""),
-        paidAt: mpPay.status === "approved" ? (tx.paid_at ?? new Date()) : null,
-      };
-    } catch {
-      // Se falhou ao consultar MP, retornar dados locais
     }
+
+    return {
+      transactionId: tx.id,
+      mpPaymentId: tx.mp_payment_id,
+      status: tx.status,
+      statusRaw: tx.status_raw,
+      amount: Number(tx.amount),
+      method: tx.method,
+      paidAt: tx.paid_at,
+    };
   }
 
-  return {
-    transactionId: tx.id,
-    mpPaymentId: tx.mp_payment_id,
-    status: tx.status,
-    statusRaw: tx.status_raw,
-    amount: Number(tx.amount),
-    method: tx.method,
-    paidAt: tx.paid_at,
-  };
+  /*
+   * Modo teste (sem banco): o transactionId pode ser o mpPaymentId numérico
+   * ou um UUID gerado localmente. Tenta consultar direto no MP.
+   * TODO: remover quando o auth/banco estiver integrado.
+   */
+  try {
+    const mpPay = await mpPayment.get({ id: params.transactionId });
+    return {
+      transactionId: params.transactionId,
+      mpPaymentId: String(mpPay.id),
+      status: mapMpStatus(mpPay.status ?? ""),
+      statusRaw: mpPay.status,
+      amount: Number(mpPay.transaction_amount),
+      method: mapMpPaymentMethod(mpPay.payment_method_id ?? ""),
+      paidAt: mpPay.status === "approved" ? new Date() : null,
+    };
+  } catch {
+    throw notFound("Transação não encontrada");
+  }
 }
 
 /* ══════════════════════════════════════════════════

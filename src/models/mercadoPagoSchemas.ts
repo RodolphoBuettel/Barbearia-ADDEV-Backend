@@ -87,5 +87,6 @@ export const CreatePixSchema = Joi.object({
 /* ═══════ Consultar status ═══════ */
 
 export const TransactionIdParamSchema = Joi.object({
-  id: Joi.string().uuid().required(),
+  /** TODO: voltar para .uuid() quando auth estiver integrado */
+  id: Joi.string().required(),
 });
