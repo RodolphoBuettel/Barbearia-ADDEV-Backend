@@ -62,3 +62,9 @@ export const RegisterBarberSchema = joi
     commissionPercent: joi.number().integer().min(0).max(100).allow(null),
   })
   .options({ abortEarly: false, stripUnknown: true });
+
+export const RefreshTokenSchema = joi
+  .object({
+    refreshToken: joi.string().required(),
+  })
+  .options({ abortEarly: false, stripUnknown: true });

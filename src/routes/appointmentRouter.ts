@@ -1,0 +1,31 @@
+import { Router } from "express";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { requireAdmin, requireAuth } from "../middleware/authMiddleware.js";
+import {
+  createAppointment,
+  deleteAppointment,
+  getAppointmentById,
+  getAvailableSlots,
+  listAppointments,
+  updateAppointment,
+} from "../controllers/appointmentController.js";
+
+const router = Router();
+
+// Consulta de slots disponíveis — qualquer usuário logado (usado na tela de agendamento)
+router.get("/appointments/available-slots", requireAuth, asyncHandler(getAvailableSlots));
+
+// Listar / detalhar agendamentos — qualquer usuário logado (filtro por role no service)
+router.get("/appointments", requireAuth, asyncHandler(listAppointments));
+router.get("/appointments/:id", requireAuth, asyncHandler(getAppointmentById));
+
+// Criar agendamento — qualquer usuário logado (client cria para si, admin/recepcionista para qualquer)
+router.post("/appointments", requireAuth, asyncHandler(createAppointment));
+
+// Atualizar agendamento (status, notes, barbeiro) — admin/recepcionista
+router.patch("/appointments/:id", requireAuth, requireAdmin, asyncHandler(updateAppointment));
+
+// Cancelar agendamento (soft) — admin ou o próprio cliente (verificação futura no service)
+router.delete("/appointments/:id", requireAuth, asyncHandler(deleteAppointment));
+
+export default router;

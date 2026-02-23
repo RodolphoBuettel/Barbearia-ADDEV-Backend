@@ -42,7 +42,7 @@ export async function createBarbershop(
 export async function findUserByEmailInBarbershop(barbershopId: string, email: string, tx?: Prisma.TransactionClient) {
   const db = dbClient(tx);
   return db.users.findFirst({
-    where: { barbershop_id: barbershopId, email },
+    where: { email, barbershop_links: { some: { barbershop_id: barbershopId } } },
   });
 }
 
@@ -61,13 +61,18 @@ export async function createUser(
   const db = dbClient(tx);
   return db.users.create({
     data: {
-      barbershop_id: data.barbershopId,
       name: data.name,
       email: data.email,
       phone: data.phone ?? null,
       role: data.role,
       is_admin: data.isAdmin,
       password_hash: data.passwordHash,
+      current_barbershop_id: data.barbershopId,
+      barbershop_links: {
+        create: {
+          barbershop_id: data.barbershopId,
+        },
+      },
     },
   });
 }
@@ -92,6 +97,55 @@ export async function createBarberProfile(
       specialty: data.specialty ?? null,
       photo_url: data.photoUrl ?? null,
       commission_percent: data.commissionPercent ?? null,
+    },
+  });
+}
+
+/** Busca user por ID com dados completos (usado no GET /auth/me) */
+export async function findUserById(userId: string, tx?: Prisma.TransactionClient) {
+  const db = dbClient(tx);
+  return db.users.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      cpf: true,
+      role: true,
+      is_admin: true,
+      permissions: true,
+      photo_url: true,
+      created_at: true,
+      updated_at: true,
+      current_barbershop_id: true,
+      current_barbershop: {
+        select: { id: true, name: true, slug: true },
+      },
+      barbers: {
+        select: {
+          id: true,
+          display_name: true,
+          specialty: true,
+          photo_url: true,
+          commission_percent: true,
+        },
+      },
+      subscriptions: {
+        where: { status: "active" },
+        select: {
+          id: true,
+          plan_id: true,
+          status: true,
+          started_at: true,
+          next_billing_at: true,
+          monthly_barber_id: true,
+          subscription_plans: {
+            select: { id: true, name: true, price: true, cuts_per_month: true },
+          },
+        },
+        take: 1,
+      },
     },
   });
 }

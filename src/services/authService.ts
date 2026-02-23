@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import prisma from "../database/database.js";
-import { signToken } from "../utils/jwt.js";
+import { signToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt.js";
 import { slugify, normalizeEmail } from "../utils/slugify.js";
 import { conflict, notFound, unauthorized } from "../errors/index.js";
 import {
@@ -9,6 +9,7 @@ import {
   createUser,
   findBarbershopBySlug,
   findUserByEmailInBarbershop,
+  findUserById,
 } from "../repository/authRepository.js";
 
 function isPrismaUniqueError(e: any) {
@@ -17,6 +18,13 @@ function isPrismaUniqueError(e: any) {
 
 function rounds() {
   return Number(process.env.BCRYPT_SALT_ROUNDS || 10);
+}
+
+function generateTokenPair(payload: { userId: string; barbershopId: string; role: any; isAdmin: boolean }) {
+  return {
+    token: signToken(payload),
+    refreshToken: signRefreshToken(payload),
+  };
 }
 
 export async function loginService(params: { slug: string; email: string; password: string }) {
@@ -100,7 +108,7 @@ export async function registerBarbershopService(params: {
       return { shop, user };
     });
 
-    const token = signToken({
+    const tokens = generateTokenPair({
       userId: result.user.id,
       barbershopId: result.shop.id,
       role: result.user.role as any,
@@ -108,7 +116,7 @@ export async function registerBarbershopService(params: {
     });
 
     return {
-      token,
+      ...tokens,
       barbershop: result.shop,
       user: {
         id: result.user.id,
@@ -153,7 +161,7 @@ export async function registerClientService(params: {
     passwordHash,
   });
 
-  const token = signToken({
+  const tokens = generateTokenPair({
     userId: user.id,
     barbershopId: shop.id,
     role: user.role as any,
@@ -161,7 +169,7 @@ export async function registerClientService(params: {
   });
 
   return {
-    token,
+    ...tokens,
     barbershop: shop,
     user: {
       id: user.id,
@@ -238,4 +246,61 @@ export async function registerBarberService(params: {
       commissionPercent: result.barber.commission_percent,
     },
   };
+}
+
+/* ─────────────── GET /auth/me ─────────────── */
+export async function meService(userId: string) {
+  const user = await findUserById(userId);
+  if (!user) throw notFound("Usuário não encontrado");
+
+  const activeSubscription = user.subscriptions[0] ?? null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    cpf: user.cpf,
+    role: user.role,
+    isAdmin: user.is_admin,
+    permissions: user.permissions,
+    photoUrl: user.photo_url,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+    barbershop: user.current_barbershop,
+    barberProfile: user.barbers ?? null,
+    subscription: activeSubscription
+      ? {
+          id: activeSubscription.id,
+          status: activeSubscription.status,
+          startedAt: activeSubscription.started_at,
+          nextBillingAt: activeSubscription.next_billing_at,
+          monthlyBarberId: activeSubscription.monthly_barber_id,
+          plan: activeSubscription.subscription_plans,
+        }
+      : null,
+  };
+}
+
+/* ─────────────── POST /auth/refresh ─────────────── */
+export async function refreshTokenService(refreshToken: string) {
+  let payload: ReturnType<typeof verifyRefreshToken>;
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch {
+    throw unauthorized("Refresh token inválido ou expirado");
+  }
+
+  // garante que o user ainda existe
+  const user = await findUserById(payload.userId);
+  if (!user) throw unauthorized("Usuário não encontrado");
+
+  const tokenPayload = {
+    userId: user.id,
+    barbershopId: user.current_barbershop_id,
+    role: user.role as "admin" | "barber" | "client",
+    isAdmin: user.is_admin,
+  };
+
+  return generateTokenPair(tokenPayload);
 }

@@ -1,0 +1,266 @@
+import { badRequest, conflict, forbidden, notFound } from "../errors/index.js";
+import {
+  cancelSubscriptionInBarbershop,
+  createSubscriptionTx,
+  findActiveSubscriptionByUser,
+  findOverdueSubscriptions,
+  findSubscriptionByIdInBarbershop,
+  listSubscriptionsInBarbershop,
+  markSubscriptionsOverdue,
+  renewSubscriptionTx,
+  updateSubscriptionInBarbershop,
+} from "../repository/subscriptionRepository.js";
+import { findPlanByIdInBarbershop } from "../repository/subscriptionPlanRepository.js";
+import { findBarberByIdInBarbershop } from "../repository/barberRepository.js";
+
+/* ────────── helpers ────────── */
+
+function decimalToNumber(v: any): number {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  if (typeof v?.toNumber === "function") return v.toNumber();
+  return Number(v);
+}
+
+function serialize(sub: any) {
+  const plan = sub.subscription_plans;
+  const cycle = sub.subscription_cycles?.[0] ?? null;
+
+  return {
+    id: sub.id,
+    barbershopId: sub.barbershop_id,
+    userId: sub.user_id,
+    user: sub.users
+      ? { id: sub.users.id, name: sub.users.name, email: sub.users.email, phone: sub.users.phone }
+      : null,
+    planId: sub.plan_id,
+    plan: plan
+      ? {
+          id: plan.id,
+          name: plan.name,
+          subtitle: plan.subtitle,
+          price: decimalToNumber(plan.price),
+          cutsPerMonth: plan.cuts_per_month,
+          color: plan.color,
+          recommended: plan.recommended,
+          features: (plan.subscription_plan_features ?? []).map((f: any) => f.feature),
+        }
+      : null,
+    amount: decimalToNumber(sub.amount),
+    status: sub.status,
+    startedAt: sub.started_at,
+    nextBillingAt: sub.next_billing_at,
+    lastBillingAt: sub.last_billing_at,
+    endedAt: sub.ended_at,
+    paymentMethod: sub.payment_method,
+    isRecurring: sub.is_recurring,
+    autoRenewal: sub.auto_renewal,
+    daysOverdue: sub.days_overdue,
+    overdueNotificationSent: sub.overdue_notification_sent,
+    mpPreapprovalId: sub.mp_preapproval_id,
+    monthlyBarberId: sub.monthly_barber_id,
+    monthlyBarber: sub.monthly_barber
+      ? { id: sub.monthly_barber.id, displayName: sub.monthly_barber.display_name, photoUrl: sub.monthly_barber.photo_url }
+      : null,
+    monthlyBarberSetAt: sub.monthly_barber_set_at,
+    currentCycle: cycle
+      ? {
+          id: cycle.id,
+          periodStart: cycle.period_start,
+          periodEnd: cycle.period_end,
+          cutsIncluded: cycle.cuts_included,
+          cutsUsed: cycle.cuts_used,
+          cutsRemaining: cycle.cuts_included - cycle.cuts_used,
+        }
+      : null,
+    createdAt: sub.created_at,
+    updatedAt: sub.updated_at,
+  };
+}
+
+/* ─────────── LIST ─────────── */
+export async function listSubscriptionsService(params: {
+  barbershopId: string;
+  actorRole: string;
+  actorId: string;
+  query: {
+    userId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  };
+}) {
+  // Clientes só veem suas próprias assinaturas
+  let userId = params.query.userId;
+  if (params.actorRole === "client") {
+    userId = params.actorId;
+  }
+
+  const page = params.query.page ?? 1;
+  const limit = params.query.limit ?? 20;
+
+  const { items, total } = await listSubscriptionsInBarbershop({
+    barbershopId: params.barbershopId,
+    userId,
+    status: params.query.status,
+    page,
+    limit,
+  });
+
+  return { page, limit, total, items: items.map(serialize) };
+}
+
+/* ─────────── GET BY ID ─────────── */
+export async function getSubscriptionByIdService(params: {
+  barbershopId: string;
+  subscriptionId: string;
+}) {
+  const sub = await findSubscriptionByIdInBarbershop(params.barbershopId, params.subscriptionId);
+  if (!sub) throw notFound("Assinatura não encontrada");
+  return serialize(sub);
+}
+
+/* ─────────── CREATE ─────────── */
+export async function createSubscriptionService(params: {
+  barbershopId: string;
+  data: {
+    userId: string;
+    planId: string;
+    amount: number;
+    paymentMethod?: string;
+    isRecurring?: boolean;
+    autoRenewal?: boolean;
+  };
+}) {
+  // 1. Verificar se já existe assinatura ativa para o user
+  const existing = await findActiveSubscriptionByUser(params.barbershopId, params.data.userId);
+  if (existing) {
+    throw conflict("Usuário já possui uma assinatura ativa nesta barbearia");
+  }
+
+  // 2. Buscar plano para obter cutsPerMonth
+  const plan = await findPlanByIdInBarbershop(params.barbershopId, params.data.planId);
+  if (!plan) throw notFound("Plano não encontrado");
+
+  // 3. Criar subscription + primeiro ciclo
+  const created = await createSubscriptionTx({
+    barbershopId: params.barbershopId,
+    userId: params.data.userId,
+    planId: params.data.planId,
+    amount: params.data.amount,
+    paymentMethod: params.data.paymentMethod,
+    isRecurring: params.data.isRecurring,
+    autoRenewal: params.data.autoRenewal,
+    cutsPerMonth: plan.cuts_per_month,
+  });
+
+  return serialize(created);
+}
+
+/* ─────────── UPDATE ─────────── */
+export async function updateSubscriptionService(params: {
+  barbershopId: string;
+  subscriptionId: string;
+  data: {
+    status?: string;
+    monthlyBarberId?: string | null;
+    autoRenewal?: boolean;
+    isRecurring?: boolean;
+    paymentMethod?: string;
+  };
+}) {
+  const updateData: any = {};
+
+  if (params.data.status !== undefined) updateData.status = params.data.status;
+  if (params.data.autoRenewal !== undefined) updateData.auto_renewal = params.data.autoRenewal;
+  if (params.data.isRecurring !== undefined) updateData.is_recurring = params.data.isRecurring;
+  if (params.data.paymentMethod !== undefined) updateData.payment_method = params.data.paymentMethod;
+
+  // Barbeiro mensal
+  if (params.data.monthlyBarberId !== undefined) {
+    if (params.data.monthlyBarberId) {
+      const barber = await findBarberByIdInBarbershop(params.barbershopId, params.data.monthlyBarberId);
+      if (!barber) throw notFound("Barbeiro não encontrado");
+      updateData.monthly_barber_id = params.data.monthlyBarberId;
+      updateData.monthly_barber_set_at = new Date();
+    } else {
+      updateData.monthly_barber_id = null;
+      updateData.monthly_barber_set_at = null;
+    }
+  }
+
+  const updated = await updateSubscriptionInBarbershop(
+    params.barbershopId,
+    params.subscriptionId,
+    updateData
+  );
+  if (!updated) throw notFound("Assinatura não encontrada");
+  return serialize(updated);
+}
+
+/* ─────────── CANCEL ─────────── */
+export async function cancelSubscriptionService(params: {
+  barbershopId: string;
+  subscriptionId: string;
+}) {
+  const cancelled = await cancelSubscriptionInBarbershop(params.barbershopId, params.subscriptionId);
+  if (!cancelled) throw notFound("Assinatura não encontrada");
+  return serialize(cancelled);
+}
+
+/* ─────────── RENEW ─────────── */
+export async function renewSubscriptionService(params: {
+  barbershopId: string;
+  subscriptionId: string;
+}) {
+  // Buscar subscription para saber cutsPerMonth do plano
+  const sub = await findSubscriptionByIdInBarbershop(params.barbershopId, params.subscriptionId);
+  if (!sub) throw notFound("Assinatura não encontrada");
+
+  const cutsPerMonth = sub.subscription_plans?.cuts_per_month ?? 0;
+
+  const renewed = await renewSubscriptionTx(
+    params.barbershopId,
+    params.subscriptionId,
+    cutsPerMonth
+  );
+  if (!renewed) throw notFound("Assinatura não encontrada");
+  return serialize(renewed);
+}
+
+/* ─────────── TOGGLE RECURRING ─────────── */
+export async function toggleRecurringService(params: {
+  barbershopId: string;
+  subscriptionId: string;
+}) {
+  const sub = await findSubscriptionByIdInBarbershop(params.barbershopId, params.subscriptionId);
+  if (!sub) throw notFound("Assinatura não encontrada");
+
+  const updated = await updateSubscriptionInBarbershop(
+    params.barbershopId,
+    params.subscriptionId,
+    { is_recurring: !sub.is_recurring }
+  );
+  if (!updated) throw notFound("Assinatura não encontrada");
+  return serialize(updated);
+}
+
+/* ─────────── CHECK OVERDUE (job) ─────────── */
+export async function checkOverdueService(params: {
+  barbershopId: string;
+}) {
+  const overdueList = await findOverdueSubscriptions(params.barbershopId);
+
+  if (overdueList.length === 0) {
+    return { processed: 0, message: "Nenhuma assinatura vencida encontrada" };
+  }
+
+  const ids = overdueList.map((s) => s.id);
+  await markSubscriptionsOverdue(ids);
+
+  return {
+    processed: ids.length,
+    message: `${ids.length} assinatura(s) marcada(s) como vencida(s)`,
+    subscriptionIds: ids,
+  };
+}

@@ -26,7 +26,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     where: { id: payload.userId },
     select: {
       id: true,
-      barbershop_id: true,
+      current_barbershop_id: true,
       role: true,
       is_admin: true,
       name: true,
@@ -34,16 +34,14 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     },
   });
 
-  console.log('Authenticated user:', user);
-  
   if (!user) return next(unauthorized("Usuário inválido"));
 
   // evita token trocado entre barbearias
-  if (user.barbershop_id !== payload.barbershopId) return next(unauthorized("Token inválido para essa barbearia"));
+  if (user.current_barbershop_id !== payload.barbershopId) return next(unauthorized("Token inválido para essa barbearia"));
 
   req.user = {
     id: user.id,
-    barbershopId: user.barbershop_id,
+    barbershopId: user.current_barbershop_id,
     role: user.role as any,
     isAdmin: user.is_admin,
     name: user.name,

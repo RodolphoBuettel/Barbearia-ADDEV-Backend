@@ -1,0 +1,43 @@
+import joi from "joi";
+
+export const CreateSubscriptionSchema = joi
+  .object({
+    userId: joi.string().uuid().required(),
+    planId: joi.string().uuid().required(),
+    amount: joi.number().min(0).required(),
+    paymentMethod: joi
+      .string()
+      .valid("pix", "debito", "credito", "dinheiro")
+      .optional(),
+    isRecurring: joi.boolean().optional().default(true),
+    autoRenewal: joi.boolean().optional().default(true),
+  })
+  .options({ abortEarly: false, stripUnknown: true });
+
+export const UpdateSubscriptionSchema = joi
+  .object({
+    status: joi.string().valid("active", "paused", "cancelled", "expired").optional(),
+    monthlyBarberId: joi.string().uuid().allow(null).optional(),
+    autoRenewal: joi.boolean().optional(),
+    isRecurring: joi.boolean().optional(),
+    paymentMethod: joi
+      .string()
+      .valid("pix", "debito", "credito", "dinheiro")
+      .optional(),
+    notes: joi.string().trim().allow("", null).optional(),
+  })
+  .min(1)
+  .options({ abortEarly: false, stripUnknown: true });
+
+export const ListSubscriptionsQuerySchema = joi
+  .object({
+    userId: joi.string().uuid().optional(),
+    status: joi.string().valid("active", "paused", "cancelled", "expired").optional(),
+    page: joi.number().integer().min(1).optional(),
+    limit: joi.number().integer().min(1).max(100).optional(),
+  })
+  .unknown(true);
+
+export const SubscriptionIdParamSchema = joi.object({
+  id: joi.string().uuid().required(),
+});
