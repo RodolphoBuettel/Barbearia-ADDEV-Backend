@@ -62,7 +62,7 @@ export async function createCheckout(req: Request, res: Response) {
 //   return res.status(201).send(result);
 // }
 
-const client = new MercadoPagoConfig({ accessToken: 'APP_USR-6875497196865280-021114-9152b2d1afbda8e50dd61fee0f6921fe-3198516818' });
+const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "" });
 const payments = new Payment(client);
 
 export async function processPaymentController(req: Request, res: Response) {
@@ -88,7 +88,7 @@ export async function processPaymentController(req: Request, res: Response) {
         }
       }
     },
-    requestOptions: { idempotencyKey: '1234567890' }
+    requestOptions: { idempotencyKey: '123e4567-e89b-12d3-a456-426614174000' }
   })
     .then((result) => console.log(result))
     .catch((error) => console.log(error));
