@@ -65,56 +65,11 @@ app.get("/", function (req, res) {
     res.status(200).render("app", { mercadoPagoPublicKey });
 });
 
-// app.post("/process_payment", async (req, res) => {
-//     try {
-//         const body = req.body;
-
-//         const payment = new Payment(client);
-
-//         const paymentData = {
-//             transaction_amount: Number(body.transaction_amount),
-//             token: body.token,
-//             description: body.description,
-//             installments: Number(body.installments),
-//             payment_method_id: body.payment_method_id,
-//             issuer_id: body.issuer_id,
-//             payer: {
-//                 email: body.payer?.email,
-//                 identification: {
-//                     type: body.payer?.identification?.type,
-//                     number: body.payer?.identification?.number,
-//                 },
-//             },
-//         };
-
-//         const idempotencyKey = req.get("X-Idempotency-Key") || undefined;
-
-//         const result = await payment.create({
-//             body: paymentData,
-//             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
-//         });
-
-//         return res.status(201).json({
-//             id: result.id,
-//             status: result.status,
-//             status_detail: result.status_detail,
-//             payment_method_id: result.payment_method_id,
-//             card: { last_four_digits: result.card?.last_four_digits },
-//         });
-//     } catch (error) {
-//         console.log(error);
-//         const { errorMessage, errorStatus } = validateError(error);
-//         return res.status(errorStatus).json({ error_message: errorMessage });
-//     }
-// });
-
-
 app.post("/process_payment", async (req, res) => {
-    const paymentApi = new Payment(client);
-
-    console.log("Processando pagamento com dados:", req.body);
     try {
         const body = req.body;
+
+        const payment = new Payment(client);
 
         const paymentData = {
             transaction_amount: Number(body.transaction_amount),
@@ -134,42 +89,87 @@ app.post("/process_payment", async (req, res) => {
 
         const idempotencyKey = req.get("X-Idempotency-Key") || undefined;
 
-        const created = await paymentApi.create({
+        const result = await payment.create({
             body: paymentData,
             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
-        }) as any;
-
-        console.log("Pagamento criado:", created);
-
-        // Se já veio final, responde imediatamente
-        if (isFinalForYourFront(created.status)) {
-            return res.status(201).json({
-                id: created.id,
-                status: mapToFrontStatus(created.status),
-                mp_status: created.status,
-                status_detail: created.status_detail,
-            });
-        }
-        const finalPayment = await waitPaymentFinal(String(created.id), { timeoutMs: 120_000 }) as any;
-
-        console.log("Pagamento finalizado:", finalPayment);
+        });
 
         return res.status(201).json({
-            id: finalPayment.id,
-            status: mapToFrontStatus(finalPayment.status),
-            mp_status: finalPayment.status,
-            status_detail: finalPayment.status_detail,
+            id: result.id,
+            status: result.status,
+            status_detail: result.status_detail,
+            payment_method_id: result.payment_method_id,
+            card: { last_four_digits: result.card?.last_four_digits },
         });
     } catch (error) {
-        // if (error?.message === "PAYMENT_TIMEOUT") {
-        //     return res.status(504).json({ error_message: "Pagamento ainda em processamento (timeout no servidor)." });
-        // }
-
         console.log(error);
         const { errorMessage, errorStatus } = validateError(error);
         return res.status(errorStatus).json({ error_message: errorMessage });
     }
 });
+
+
+// app.post("/process_payment", async (req, res) => {
+//     const paymentApi = new Payment(client);
+
+//     console.log("Processando pagamento com dados:", req.body);
+//     try {
+//         const body = req.body;
+
+//         const paymentData = {
+//             transaction_amount: Number(body.transaction_amount),
+//             token: body.token,
+//             description: body.description,
+//             installments: Number(body.installments),
+//             payment_method_id: body.payment_method_id,
+//             issuer_id: body.issuer_id,
+//             payer: {
+//                 email: body.payer?.email,
+//                 identification: {
+//                     type: body.payer?.identification?.type,
+//                     number: body.payer?.identification?.number,
+//                 },
+//             },
+//         };
+
+//         const idempotencyKey = req.get("X-Idempotency-Key") || undefined;
+
+//         const created = await paymentApi.create({
+//             body: paymentData,
+//             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
+//         }) as any;
+
+//         console.log("Pagamento criado:", created);
+
+//         // Se já veio final, responde imediatamente
+//         if (isFinalForYourFront(created.status)) {
+//             return res.status(201).json({
+//                 id: created.id,
+//                 status: mapToFrontStatus(created.status),
+//                 mp_status: created.status,
+//                 status_detail: created.status_detail,
+//             });
+//         }
+//         const finalPayment = await waitPaymentFinal(String(created.id), { timeoutMs: 120_000 }) as any;
+
+//         console.log("Pagamento finalizado:", finalPayment);
+
+//         return res.status(201).json({
+//             id: finalPayment.id,
+//             status: mapToFrontStatus(finalPayment.status),
+//             mp_status: finalPayment.status,
+//             status_detail: finalPayment.status_detail,
+//         });
+//     } catch (error) {
+//         // if (error?.message === "PAYMENT_TIMEOUT") {
+//         //     return res.status(504).json({ error_message: "Pagamento ainda em processamento (timeout no servidor)." });
+//         // }
+
+//         console.log(error);
+//         const { errorMessage, errorStatus } = validateError(error);
+//         return res.status(errorStatus).json({ error_message: errorMessage });
+//     }
+// });
 
 app.post("/mp/webhook", async (req, res) => {
     try {
