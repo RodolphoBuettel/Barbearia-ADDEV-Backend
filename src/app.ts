@@ -139,6 +139,8 @@ app.post("/process_payment", async (req, res) => {
             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
         }) as any;
 
+        console.log("Pagamento criado:", created);
+
         // Se já veio final, responde imediatamente
         if (isFinalForYourFront(created.status)) {
             return res.status(201).json({
@@ -149,6 +151,8 @@ app.post("/process_payment", async (req, res) => {
             });
         }
         const finalPayment = await waitPaymentFinal(String(created.id), { timeoutMs: 120_000 }) as any;
+
+        console.log("Pagamento finalizado:", finalPayment);
 
         return res.status(201).json({
             id: finalPayment.id,
