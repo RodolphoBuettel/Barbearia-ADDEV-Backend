@@ -201,7 +201,15 @@ async function main() {
         role,
         is_admin: Boolean(u.isAdmin ?? false),
         password_hash,
-        barbershop_id: barbershopId,
+        current_barbershop: {
+          connect: { id: barbershopId },
+        },
+        barbershop_links: {
+          connectOrCreate: {
+            where: { user_id_barbershop_id: { user_id: "", barbershop_id: barbershopId } },
+            create: { barbershop_id: barbershopId },
+          },
+        },
       },
       create: {
         legacy_id: legacy,
@@ -211,7 +219,12 @@ async function main() {
         role,
         is_admin: Boolean(u.isAdmin ?? false),
         password_hash,
-        barbershop_id: barbershopId,
+        current_barbershop: {
+          connect: { id: barbershopId },
+        },
+        barbershop_links: {
+          create: { barbershop_id: barbershopId },
+        },
       },
     });
 
