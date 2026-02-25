@@ -66,6 +66,8 @@ app.get("/", function (req, res) {
 });
 
 app.post("/process_payment", async (req, res) => {
+
+    console.log("Processando pagamento com dados:", req.body);
     try {
         const body = req.body;
 
@@ -93,6 +95,8 @@ app.post("/process_payment", async (req, res) => {
             body: paymentData,
             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
         });
+
+        console.log("Pagamento criado:", result);
 
         return res.status(201).json({
             id: result.id,
