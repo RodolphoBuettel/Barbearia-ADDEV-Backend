@@ -186,7 +186,8 @@ app.post("/mp/webhook", async (req, res) => {
 
 app.post("/criar_pix", async (req, res) => {
     try {
-        const payment = new Payment(client);
+        const clientPix = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD ?? "" });
+        const payment = new Payment(clientPix);
 
         const body = {
             transaction_amount: Number(req.body.transaction_amount),
@@ -208,7 +209,7 @@ app.post("/criar_pix", async (req, res) => {
         });
 
         return res.status(201).json({
-            // result: result
+            id: result.id,
             ticket_url: result.point_of_interaction?.transaction_data?.ticket_url,
             qr_code: result.point_of_interaction?.transaction_data?.qr_code,
             qr_code_base64: result.point_of_interaction?.transaction_data?.qr_code_base64,
@@ -218,6 +219,16 @@ app.post("/criar_pix", async (req, res) => {
         const { errorMessage, errorStatus } = validateError(error);
         return res.status(errorStatus).json({ error_message: errorMessage });
     }
+});
+
+app.get("/pixstatus/:id", async (req, res) => {
+    const clientPixStatus = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN_PROD ?? "" });
+    const payment = new Payment(clientPixStatus);
+
+    const result = await payment.get({
+        id: req.params.id,
+    });
+    return res.status(200).json(result.status);
 });
 
 function validateError(error: any) {
