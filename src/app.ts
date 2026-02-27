@@ -86,6 +86,7 @@ app.post("/process_payment", async (req, res) => {
             installments: Number(body.installments),
             payment_method_id: body.payment_method_id,
             issuer_id: body.issuer_id,
+            statement_descriptor: "BARBER_ONE",
             payer: {
                 email: body.payer?.email,
                 identification: {
