@@ -120,6 +120,9 @@ app.post("/process_payment", async (req, res) => {
             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
         });
 
+        console.log("IDEMPOTENCY:", idempotencyKey);
+        console.log("EXTERNAL_REFERENCE:", externalReference);
+
         console.log("Pagamento criado:", result);
 
         return res.status(201).json({
