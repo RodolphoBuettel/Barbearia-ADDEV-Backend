@@ -188,19 +188,38 @@ app.post("/process_payment", async (req, res) => {
 
         const externalReference = `pay_${Date.now()}_${crypto.randomUUID()}`;
 
+        console.log("ITEMS:", req.body.items);
+
+        const items: any[] = [];
+
+        for (let i = 0; i < body.items.length; i++) {
+            const it = body.items[i];
+
+            items.push({
+                id: it.id,
+                title: it.title,
+                description: it.description,
+                picture_url: it.picture_url,
+                category_id: it.category_id,
+                quantity: it.quantity,
+                currency_id: it.currency_id || "BRL",
+                unit_price: it.unit_price,
+            });
+        }
         const paymentData: any = {
-            items: [
-                {
-                    id: body.id || "item123",
-                    title: body.title || "Dummy Title",
-                    description: body.description || "Dummy description",
-                    picture_url: body.picture_url || 'https://www.myapp.com/myimage.jpg',
-                    category_id: body.category_id || 'car_electronics',
-                    quantity: body.quantity || 1,
-                    currency_id: 'BRL',
-                    unit_price: body.unit_price || 10,
-                },
-            ],
+            items,
+            // items: [
+            //     {
+            //         id: body.id || "item123",
+            //         title: body.title || "Dummy Title",
+            //         description: body.description || "Dummy description",
+            //         picture_url: body.picture_url || 'https://www.myapp.com/myimage.jpg',
+            //         category_id: body.category_id || 'car_electronics',
+            //         quantity: body.quantity || 1,
+            //         currency_id: 'BRL',
+            //         unit_price: body.unit_price || 10,
+            //     },
+            // ],
             // marketplace_fee: 0,
             // payer: {
             //     name: 'Test',
@@ -278,10 +297,6 @@ app.post("/process_payment", async (req, res) => {
 
         const result = await preference.create({ body: paymentData, requestOptions: idempotencyKey ? { idempotencyKey } : undefined });
 
-        console.log("IDEMPOTENCY:", idempotencyKey);
-        console.log("EXTERNAL_REFERENCE:", externalReference);
-
-        console.log("Pagamento criado:", result);
         return res.status(201).json({
             status: result.auto_return,
             url_sucess: result.back_urls?.success,
