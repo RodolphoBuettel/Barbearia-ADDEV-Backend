@@ -84,23 +84,6 @@ app.post("/process_payment", async (req, res) => {
 
         const externalReference = `pay_${Date.now()}_${crypto.randomUUID()}`;
 
-        const items: any[] = [];
-
-        for (let i = 0; i < body.items.length; i++) {
-            const it = body.items[i];
-
-            items.push({
-                id: it.id,
-                title: it.title,
-                description: it.description,
-                picture_url: it.picture_url,
-                category_id: it.category_id,
-                quantity: it.quantity,
-                currency_id: it.currency_id || "BRL",
-                unit_price: Number(body.transaction_amount) / Number(it.quantity) || 0,
-            });
-        }
-
         const paymentData: Record<string, any> = {
             transaction_amount: Number(body.transaction_amount),
             token: body.token,
@@ -119,7 +102,16 @@ app.post("/process_payment", async (req, res) => {
                 },
             },
             additional_info: {
-                items,
+                items: [
+                    {
+                        id: body.id,
+                        title: body.title,
+                        description: body.description,
+                        category_id: body.category_id || "others",
+                        quantity: body.quantity || 1,
+                        unit_price: Number(body.unit_price) || Number(body.transaction_amount),
+                    },
+                ],
             },
         };
 
