@@ -4,20 +4,20 @@ import joi from "joi";
 const email = joi.string().trim().lowercase().email();
 const password = joi.string().min(4);
 
-const slug = joi
-  .string()
-  .trim()
-  .min(2)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) // opcional: força padrão de slug
-  .messages({
-    "string.pattern.base": "slug inválido (use letras/números e hífen).",
-  });
+// const slug = joi
+//   .string()
+//   .trim()
+//   .min(2)
+//   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) // opcional: força padrão de slug
+//   .messages({
+//     "string.pattern.base": "slug inválido (use letras/números e hífen).",
+//   });
 
 const phone = joi.string().trim().allow("", null).optional();
 
 export const LoginSchema = joi
   .object({
-    slug: slug.required(),
+    // slug: slug.required(),
     email: email.required(),
     password: password.required(),
   })
@@ -25,7 +25,7 @@ export const LoginSchema = joi
 
 export const RegisterClientSchema = joi
   .object({
-    slug: slug.required(),
+    // slug: slug.required(),
     name: joi.string().trim().min(2).required(),
     email: email.required(),
     phone,
@@ -37,7 +37,7 @@ export const RegisterBarbershopSchema = joi
   .object({
     barbershopName: joi.string().trim().min(2).required(),
 
-    slug: slug.optional(),
+    // slug: slug.optional(),
     cnpj: joi.string().trim().allow("", null).optional(),
 
     phone: joi.string().trim().allow("", null).optional(),
