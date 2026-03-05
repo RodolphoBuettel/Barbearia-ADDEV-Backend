@@ -73,110 +73,6 @@ app.get("/", function (req, res) {
     res.status(200).render("app", { mercadoPagoPublicKey });
 });
 
-// app.post("/process_payment", async (req, res) => {
-
-//     console.log("Processando pagamento com dados:", req.body);
-//     try {
-
-//         const body = req.body;
-
-//         const payment = new Payment(client);
-
-//         const externalReference = `pay_${Date.now()}_${crypto.randomUUID()}`;
-
-//         const paymentData: Record<string, any> = {
-//             transaction_amount: Number(body.transaction_amount),
-//             token: body.token,
-//             description: body.description,
-//             installments: Number(body.installments),
-//             payment_method_id: body.payment_method_id,
-//             issuer_id: body.issuer_id || undefined,
-//             external_reference: externalReference,
-//             statement_descriptor: "BarberShop",
-//             ...(MP_NOTIFICATION_URL ? { notification_url: MP_NOTIFICATION_URL } : {}),
-//             payer: {
-//                 email: body.payer?.email,
-//                 identification: {
-//                     type: body.payer?.identification?.type,
-//                     number: body.payer?.identification?.number,
-//                 },
-//             },
-//             additional_info: {
-//                 items: [
-//                     {
-//                         id: body.id,
-//                         title: body.title,
-//                         description: body.description,
-//                         category_id: body.category_id || "others",
-//                         quantity: body.quantity || 1,
-//                         unit_price: Number(body.unit_price) || Number(body.transaction_amount),
-//                     },
-//                 ],
-//             },
-//         };
-
-//         const idempotencyKey = req.get("X-Idempotency-Key") || undefined;
-
-//         const result = await payment.create({
-//             body: paymentData,
-//             requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
-//         });
-
-//         console.log("IDEMPOTENCY:", idempotencyKey);
-//         console.log("EXTERNAL_REFERENCE:", externalReference);
-
-//         console.log("Pagamento criado:", result);
-
-//         // Se o status já é definitivo, retorna direto
-//         if (isFinalForYourFront(result.status ?? "")) {
-//             return res.status(201).json({
-//                 id: result.id,
-//                 status: result.status,
-//                 status_detail: result.status_detail,
-//                 payment_method_id: result.payment_method_id,
-//                 external_reference: externalReference,
-//                 card: { last_four_digits: result.card?.last_four_digits },
-//             });
-//         }
-
-//         // Status pendente (in_process) — aguardar webhook com status final
-//         console.log(`Pagamento ${result.id} em análise (${result.status}), aguardando webhook...`);
-//         try {
-//             const final: any = await waitPaymentFinal(String(result.id), { timeoutMs: 120_000 });
-
-//             return res.status(201).json({
-//                 id: final.id ?? result.id,
-//                 status: mapToFrontStatus(final.status ?? "rejected"),
-//                 status_detail: final.status_detail ?? result.status_detail,
-//                 payment_method_id: final.payment_method_id ?? result.payment_method_id,
-//                 external_reference: externalReference,
-//                 card: { last_four_digits: final.card?.last_four_digits ?? result.card?.last_four_digits },
-//             });
-//         } catch {
-//             // Timeout — o webhook não chegou a tempo
-//             console.warn(`Timeout aguardando status final do pagamento ${result.id}`);
-//             // return res.status(201).json({
-//             //     id: result.id,
-//             //     status: "rejected",
-//             //     status_detail: "timeout_waiting_for_final_status",
-//             //     payment_method_id: result.payment_method_id,
-//             //     external_reference: externalReference,
-//             //     card: { last_four_digits: result.card?.last_four_digits },
-//             // });
-//             return res.status(201).json({
-//                 id: result.id,
-//                 status: "pending",
-//                 status_detail: "waiting_for_final_status",
-//                 external_reference: externalReference,
-//             });
-//         }
-//     } catch (error) {
-//         console.log(error);
-//         const { errorMessage, errorStatus } = validateError(error);
-//         return res.status(errorStatus).json({ error_message: errorMessage });
-//     }
-// });
-
 app.post("/process_payment", async (req, res) => {
 
     console.log("Processando pagamento com dados:", req.body);
@@ -184,11 +80,9 @@ app.post("/process_payment", async (req, res) => {
 
         const body = req.body;
 
-        const preference = new Preference(client)
+        const payment = new Payment(client);
 
         const externalReference = `pay_${Date.now()}_${crypto.randomUUID()}`;
-
-        console.log("ITEMS:", req.body.items);
 
         const items: any[] = [];
 
@@ -203,41 +97,155 @@ app.post("/process_payment", async (req, res) => {
                 category_id: it.category_id,
                 quantity: it.quantity,
                 currency_id: it.currency_id || "BRL",
-                unit_price: 2,
+                unit_price: Number(body.transaction_amount) / Number(it.quantity) || 0,
             });
         }
-        const paymentData: any = {
-            items,
-            back_urls: {
-                success: 'http://localhost:5173/agendamentos',
-                failure: 'http://localhost:5173/home',
-                pending: 'http://localhost:5173/agendamentos',
-            },
+
+        const paymentData: Record<string, any> = {
+            transaction_amount: Number(body.transaction_amount),
+            token: body.token,
+            description: body.description,
+            installments: Number(body.installments),
+            payment_method_id: body.payment_method_id,
+            issuer_id: body.issuer_id || undefined,
             external_reference: externalReference,
+            statement_descriptor: "BarberShop",
             ...(MP_NOTIFICATION_URL ? { notification_url: MP_NOTIFICATION_URL } : {}),
+            payer: {
+                email: body.payer?.email,
+                identification: {
+                    type: body.payer?.identification?.type,
+                    number: body.payer?.identification?.number,
+                },
+            },
+            additional_info: {
+                items,
+            },
         };
 
         const idempotencyKey = req.get("X-Idempotency-Key") || undefined;
 
-        const result = await preference.create({ body: paymentData, requestOptions: idempotencyKey ? { idempotencyKey } : undefined });
+        const result = await payment.create({
+            body: paymentData,
+            requestOptions: idempotencyKey ? { idempotencyKey } : undefined,
+        });
 
-        console.log("Preferência criada:", result);
+        console.log("IDEMPOTENCY:", idempotencyKey);
+        console.log("EXTERNAL_REFERENCE:", externalReference);
 
-        return res.status(201).json({
-            status: result.auto_return,
-            url_sucess: result.back_urls?.success,
-            url_failure: result.back_urls?.failure,
-            url_pending: result.back_urls?.pending,
-            init_point: result.init_point,
-            collector_id: result.collector_id,
-            id: result.id
-        })
+        console.log("Pagamento criado:", result);
+
+        // Se o status já é definitivo, retorna direto
+        if (isFinalForYourFront(result.status ?? "")) {
+            return res.status(201).json({
+                id: result.id,
+                status: result.status,
+                status_detail: result.status_detail,
+                payment_method_id: result.payment_method_id,
+                external_reference: externalReference,
+                card: { last_four_digits: result.card?.last_four_digits },
+            });
+        }
+
+        // Status pendente (in_process) — aguardar webhook com status final
+        console.log(`Pagamento ${result.id} em análise (${result.status}), aguardando webhook...`);
+        try {
+            const final: any = await waitPaymentFinal(String(result.id), { timeoutMs: 120_000 });
+
+            return res.status(201).json({
+                id: final.id ?? result.id,
+                status: mapToFrontStatus(final.status ?? "rejected"),
+                status_detail: final.status_detail ?? result.status_detail,
+                payment_method_id: final.payment_method_id ?? result.payment_method_id,
+                external_reference: externalReference,
+                card: { last_four_digits: final.card?.last_four_digits ?? result.card?.last_four_digits },
+            });
+        } catch {
+            // Timeout — o webhook não chegou a tempo
+            console.warn(`Timeout aguardando status final do pagamento ${result.id}`);
+            // return res.status(201).json({
+            //     id: result.id,
+            //     status: "rejected",
+            //     status_detail: "timeout_waiting_for_final_status",
+            //     payment_method_id: result.payment_method_id,
+            //     external_reference: externalReference,
+            //     card: { last_four_digits: result.card?.last_four_digits },
+            // });
+            return res.status(201).json({
+                id: result.id,
+                status: "pending",
+                status_detail: "waiting_for_final_status",
+                external_reference: externalReference,
+            });
+        }
     } catch (error) {
         console.log(error);
         const { errorMessage, errorStatus } = validateError(error);
         return res.status(errorStatus).json({ error_message: errorMessage });
     }
 });
+
+// app.post("/process_payment", async (req, res) => {
+
+//     console.log("Processando pagamento com dados:", req.body);
+//     try {
+
+//         const body = req.body;
+
+//         const preference = new Preference(client)
+
+//         const externalReference = `pay_${Date.now()}_${crypto.randomUUID()}`;
+
+//         console.log("ITEMS:", req.body.items);
+
+//         const items: any[] = [];
+
+//         for (let i = 0; i < body.items.length; i++) {
+//             const it = body.items[i];
+
+//             items.push({
+//                 id: it.id,
+//                 title: it.title,
+//                 description: it.description,
+//                 picture_url: it.picture_url,
+//                 category_id: it.category_id,
+//                 quantity: it.quantity,
+//                 currency_id: it.currency_id || "BRL",
+//                 unit_price: 2,
+//             });
+//         }
+//         const paymentData: any = {
+//             items,
+//             back_urls: {
+//                 success: 'http://localhost:5173/agendamentos',
+//                 failure: 'http://localhost:5173/home',
+//                 pending: 'http://localhost:5173/agendamentos',
+//             },
+//             external_reference: externalReference,
+//             ...(MP_NOTIFICATION_URL ? { notification_url: MP_NOTIFICATION_URL } : {}),
+//         };
+
+//         const idempotencyKey = req.get("X-Idempotency-Key") || undefined;
+
+//         const result = await preference.create({ body: paymentData, requestOptions: idempotencyKey ? { idempotencyKey } : undefined });
+
+//         console.log("Preferência criada:", result);
+
+//         return res.status(201).json({
+//             status: result.auto_return,
+//             url_sucess: result.back_urls?.success,
+//             url_failure: result.back_urls?.failure,
+//             url_pending: result.back_urls?.pending,
+//             init_point: result.init_point,
+//             collector_id: result.collector_id,
+//             id: result.id
+//         })
+//     } catch (error) {
+//         console.log(error);
+//         const { errorMessage, errorStatus } = validateError(error);
+//         return res.status(errorStatus).json({ error_message: errorMessage });
+//     }
+// });
 
 // mapeia status do MP -> teu enum
 function mapMpStatusToLocal(mpStatus: string) {
