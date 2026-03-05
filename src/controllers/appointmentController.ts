@@ -24,7 +24,7 @@ export async function listAppointments(req: Request, res: Response) {
   const { error, value } = ListAppointmentsQuerySchema.validate(req.query, { abortEarly: false });
   if (error) return res.status(422).send(joiErrors(error));
 
-  console.log("APONTAMENTOS QUERY:", req.query);
+  console.log("APONTAMENTOS QUERY:", req);
 
   const result = await listAppointmentsService({
     barbershopId: req.user!.barbershopId,
