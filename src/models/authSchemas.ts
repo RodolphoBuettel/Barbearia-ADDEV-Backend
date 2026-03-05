@@ -4,14 +4,14 @@ import joi from "joi";
 const email = joi.string().trim().lowercase().email();
 const password = joi.string().min(4);
 
-// const slug = joi
-//   .string()
-//   .trim()
-//   .min(2)
-//   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) // opcional: força padrão de slug
-//   .messages({
-//     "string.pattern.base": "slug inválido (use letras/números e hífen).",
-//   });
+const slug = joi
+  .string()
+  .trim()
+  .min(2)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+  .messages({
+    "string.pattern.base": "slug inválido (use letras/números e hífen).",
+  });
 
 const phone = joi.string().trim().allow("", null).optional();
 
@@ -25,7 +25,7 @@ export const LoginSchema = joi
 
 export const RegisterClientSchema = joi
   .object({
-    // slug: slug.required(),
+    slug: slug.required(),
     name: joi.string().trim().min(2).required(),
     email: email.required(),
     phone,

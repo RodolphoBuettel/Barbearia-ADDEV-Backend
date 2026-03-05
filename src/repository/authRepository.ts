@@ -46,6 +46,17 @@ export async function findUserByEmailInBarbershop(barbershopId: string, email: s
   });
 }
 
+/** Busca usuário por email (login sem slug) */
+export async function findUserByEmail(email: string, tx?: Prisma.TransactionClient) {
+  const db = dbClient(tx);
+  return db.users.findFirst({
+    where: { email },
+    include: {
+      current_barbershop: { select: { id: true, name: true, slug: true } },
+    },
+  });
+}
+
 export async function createUser(
   data: {
     barbershopId: string;

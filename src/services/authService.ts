@@ -8,6 +8,7 @@ import {
   createBarbershop,
   createUser,
   findBarbershopBySlug,
+  findUserByEmail,
   findUserByEmailInBarbershop,
   findUserById,
 } from "../repository/authRepository.js";
@@ -27,18 +28,17 @@ function generateTokenPair(payload: { userId: string; barbershopId: string; role
   };
 }
 
-export async function loginService(params: { slug: string; email: string; password: string }) {
-  const slug = params.slug.trim();
+export async function loginService(params: { email: string; password: string }) {
   const email = normalizeEmail(params.email);
 
-  const shop = await findBarbershopBySlug(slug);
-  if (!shop) throw notFound("Barbearia não encontrada");
-
-  const user = await findUserByEmailInBarbershop(shop.id, email);
+  const user = await findUserByEmail(email);
   if (!user) throw unauthorized("Credenciais inválidas");
 
   const ok = await bcrypt.compare(params.password, user.password_hash);
   if (!ok) throw unauthorized("Credenciais inválidas");
+
+  const shop = user.current_barbershop;
+  if (!shop) throw notFound("Usuário não vinculado a nenhuma barbearia");
 
   const token = signToken({
     userId: user.id,
