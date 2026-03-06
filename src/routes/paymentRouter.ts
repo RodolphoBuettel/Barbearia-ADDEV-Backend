@@ -27,7 +27,9 @@ router.post("/payments", requireAuth, requireAdmin, asyncHandler(createPayment))
 router.get("/appointmentPayments", requireAuth, asyncHandler(listAppointmentPayments));
 
 // Criar pagamento de agendamento — admin / recepcionista
-router.post("/appointmentPayments", requireAuth, requireAdmin, asyncHandler(createAppointmentPayment));
+// router.post("/appointmentPayments", requireAuth, requireAdmin, asyncHandler(createAppointmentPayment));
+
+router.post("/appointmentPayments", requireAuth, asyncHandler(createAppointmentPayment));
 
 // Atualizar (marcar como pago, etc.) — admin
 router.patch("/appointmentPayments/:id", requireAuth, requireAdmin, asyncHandler(updatePayment));
