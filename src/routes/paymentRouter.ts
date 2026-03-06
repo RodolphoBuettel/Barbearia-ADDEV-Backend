@@ -24,13 +24,13 @@ router.post("/payments", requireAuth, requireAdmin, asyncHandler(createPayment))
 /* ═══════ Appointment Payments ═══════ */
 
 // Listar — admin vê todos, client vê os seus
-router.get("/appointment-payments", requireAuth, asyncHandler(listAppointmentPayments));
+router.get("/appointmentPayments", requireAuth, asyncHandler(listAppointmentPayments));
 
 // Criar pagamento de agendamento — admin / recepcionista
-router.post("/appointment-payments", requireAuth, requireAdmin, asyncHandler(createAppointmentPayment));
+router.post("/appointmentPayments", requireAuth, requireAdmin, asyncHandler(createAppointmentPayment));
 
 // Atualizar (marcar como pago, etc.) — admin
-router.patch("/appointment-payments/:id", requireAuth, requireAdmin, asyncHandler(updatePayment));
+router.patch("/appointmentPayments/:id", requireAuth, requireAdmin, asyncHandler(updatePayment));
 
 // Também permite atualizar pagamento de assinatura
 router.patch("/payments/:id", requireAuth, requireAdmin, asyncHandler(updatePayment));
