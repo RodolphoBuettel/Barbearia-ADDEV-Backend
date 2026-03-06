@@ -82,7 +82,7 @@ export async function createPaymentInBarbershop(data: {
   appointmentId?: string;
   subscriptionId?: string;
   amount: number;
-  method: string;
+  method?: string;
   status?: string;
   statusRaw?: string;
   paidAt?: Date;
@@ -94,7 +94,7 @@ export async function createPaymentInBarbershop(data: {
       appointment_id: data.appointmentId ?? null,
       subscription_id: data.subscriptionId ?? null,
       amount: data.amount,
-      method: data.method as any,
+      method: (data.method as any) ?? "local",
       status: (data.status as any) ?? "pending",
       status_raw: data.statusRaw ?? null,
       paid_at: data.paidAt ?? null,

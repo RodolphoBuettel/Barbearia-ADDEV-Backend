@@ -10,7 +10,9 @@ export const CreatePaymentSchema = joi
     amount: joi.number().min(0).required(),
     method: joi
       .string()
-      .valid("pix", "debito", "credito", "dinheiro", "local", "subscription"),
+      .valid("pix", "debito", "credito", "dinheiro", "local", "subscription")
+      .optional()
+      .default("local"),
     status: joi
       .string()
       .valid("pending", "approved", "paid", "failed", "refunded", "covered")

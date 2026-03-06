@@ -161,7 +161,7 @@ export async function createAppointmentPaymentService(params: {
     appointmentId: string;
     userId: string;
     amount: number;
-    method: string;
+    method?: string;
     status?: string;
   };
 }) {
