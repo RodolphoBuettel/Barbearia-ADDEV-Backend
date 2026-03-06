@@ -198,7 +198,7 @@ app.post("/process_payment", async (req, res) => {
             items.push({
                 id: it.id,
                 title: it.title,
-                description: it.description,
+                description: it.title,
                 picture_url: it.picture_url,
                 category_id: it.category_id,
                 quantity: it.quantity,

@@ -144,7 +144,7 @@ export async function createAppointmentService(params: {
 
   // 3. Montar datas de início e fim
   const startAt = new Date(`${date}T${time}:00Z`);
-  const endAt = new Date(startAt.getTime() + totalDuration * 60_000);
+  const endAt = new Date(startAt.getTime() + 50 * 60_000);
 
   // 4. Validar horário de funcionamento
   const startHour = startAt.getUTCHours();
