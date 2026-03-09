@@ -69,6 +69,7 @@ model barbers {
   legacy_id          String?  @unique
   user_id            String?  @unique @db.Uuid
   display_name       String
+  salary             Int?
   specialty          String?
   photo_url          String?
   commission_percent Int?

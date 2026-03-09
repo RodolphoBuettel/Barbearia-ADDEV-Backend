@@ -1,10 +1,10 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import fs from "node:fs";
+// import fs from "node:fs";
 
 const prisma = new PrismaClient();
 
-const MOCK_FILE = process.env.MOCK_FILE ?? "prisma/mock.json";
+const MOCK_FILE = "prisma/mock.json";
 
 // você pode personalizar aqui
 const DEFAULT_BARBERSHOP = {
@@ -103,11 +103,11 @@ async function wipeAll() {
 async function main() {
   console.log("🌱 Iniciando seed do banco de dados...");
 
-  if (!fs.existsSync(MOCK_FILE)) {
-    throw new Error(`Arquivo de mock não encontrado: ${MOCK_FILE}`);
-  }
+  // if (!fs.existsSync(MOCK_FILE)) {
+  //   throw new Error(`Arquivo de mock não encontrado: ${MOCK_FILE}`);
+  // }
 
-  const raw = fs.readFileSync(MOCK_FILE, "utf8");
+  const raw = MOCK_FILE;
   const data = JSON.parse(raw);
 
   // 1) apaga tudo (teste local)
@@ -615,7 +615,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error("❌ Erro ao fazer seed:", e);
-    process.exit(1);
+    // exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

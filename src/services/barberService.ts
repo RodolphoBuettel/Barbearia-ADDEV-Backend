@@ -74,6 +74,7 @@ export async function createBarberService(params: {
     displayName: string;
     specialty?: string | null;
     photoUrl?: string | null;
+    salary?: number | null;
     commissionPercent?: number | null;
     userId?: string | null;
   };
@@ -94,6 +95,7 @@ export async function createBarberService(params: {
     specialty: params.data.specialty ?? null,
     photoUrl: params.data.photoUrl ?? null,
     commissionPercent: params.data.commissionPercent ?? null,
+    salary: params.data.salary ?? null,
     userId: params.data.userId ?? null,
   });
 

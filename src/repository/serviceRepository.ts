@@ -38,7 +38,7 @@ export async function listServices(params: {
     barbershop_id: params.barbershopId,
   };
 
-  if (!params.includeInactive) where.active = true;
+  // if (!params.includeInactive) where.active = true;
 
   if (params.q) {
     where.OR = [
