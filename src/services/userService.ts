@@ -43,7 +43,7 @@ export async function listUsersService(params: {
   }
 
   const page = params.query.page ?? 1;
-  const limit = params.query.limit ?? 20;
+  const limit = params.query.limit ?? 50;
 
   const { items, total } = await listUsersInBarbershop({
     barbershopId: params.barbershopId,
