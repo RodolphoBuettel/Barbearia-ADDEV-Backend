@@ -134,6 +134,8 @@ export async function createAppointmentService(params: {
 }) {
   const { barberId, clientId, date, time, services, products } = params.data;
 
+  console.log("CLIENTE ID ", clientId);
+
   // 1. Validar que o barbeiro existe na barbearia
   const barber = await findBarberByIdInBarbershop(params.barbershopId, barberId);
   if (!barber) throw notFound("Barbeiro não encontrado");
