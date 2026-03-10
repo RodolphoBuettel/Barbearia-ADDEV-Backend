@@ -18,6 +18,10 @@ import paymentMethodRouter from "./routes/paymentMethodRouter.js";
 import galleryRouter from "./routes/galleryRouter.js";
 // import mercadoPagoRouter from "./routes/mercadoPagoRouter.js";
 import webhookRouter from "./routes/webhookRouter.js";
+import dependentRouter from "./routes/dependentRouter.js";
+import savedCardRouter from "./routes/savedCardRouter.js";
+import employeeValeRouter from "./routes/employeeValeRouter.js";
+import employeePaymentRouter from "./routes/employeePaymentRouter.js";
 import { waitPaymentFinal, isFinalForYourFront, mapToFrontStatus, resolveWaiter } from "./middleware/waiters.js";
 import open from "open";
 import path from "path";
@@ -413,6 +417,10 @@ app.use(webhookRouter);
 app.use(productsRouter);
 app.use(serviceRouter);
 app.use(settingsRouter);
+app.use(dependentRouter);
+app.use(savedCardRouter);
+app.use(employeeValeRouter);
+app.use(employeePaymentRouter);
 app.use(errorHandler);
 
 
