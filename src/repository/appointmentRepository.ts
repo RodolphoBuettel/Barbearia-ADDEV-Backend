@@ -178,10 +178,14 @@ export async function cancelAppointmentInBarbershop(barbershopId: string, appoin
   const existing = await findAppointmentByIdInBarbershop(barbershopId, appointmentId);
   if (!existing) return null;
 
-  return prisma.appointments.update({
-    where: { id: appointmentId },
-    data: { status: "cancelled" },
-    select: appointmentSelect,
+  // return prisma.appointments.update({
+  //   where: { id: appointmentId },
+  //   data: { status: "cancelled" },
+  //   select: appointmentSelect,
+  // });
+
+  return prisma.appointments.delete({
+    where: { id: appointmentId }
   });
 }
 
