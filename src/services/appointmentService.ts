@@ -23,6 +23,7 @@ function serializeAppointment(a: any) {
     id: a.id,
     barberId: a.barber_id,
     clientId: a.client_id,
+    dependentId: a.dependent_id ?? null,
     startAt: a.start_at,
     endAt: a.end_at,
     status: a.status,
@@ -35,6 +36,9 @@ function serializeAppointment(a: any) {
       : null,
     client: a.users
       ? { id: a.users.id, name: a.users.name, email: a.users.email, phone: a.users.phone }
+      : null,
+    dependent: a.dependents
+      ? { id: a.dependents.id, name: a.dependents.name, age: a.dependents.age }
       : null,
     services: (a.appointment_services ?? []).map((s: any) => ({
       id: s.id,
@@ -84,11 +88,10 @@ export async function listAppointmentsService(params: {
   // Barbeiro sem permissão admin vê apenas seus agendamentos
   let barberId = params.query.barberId;
   if (params.actorRole === "barber") {
-    // poderia buscar o barber_id do user, mas permitimos o filtro vindo do front
   }
 
   const page = params.query.page ?? 1;
-  const limit = params.query.limit ?? 50;
+  const limit = params.query.limit ?? 100;
 
   const { items, total } = await listAppointmentsInBarbershop({
     barbershopId: params.barbershopId,
@@ -125,6 +128,7 @@ export async function createAppointmentService(params: {
   data: {
     barberId: string;
     clientId: string;
+    dependentId?: string | null;
     date: string; // "YYYY-MM-DD"
     time: string; // "HH:MM"
     notes?: string | null;
@@ -132,9 +136,7 @@ export async function createAppointmentService(params: {
     products: { id: string; name: string; price: number; quantity?: number; discount?: number }[];
   };
 }) {
-  const { barberId, clientId, date, time, services, products } = params.data;
-
-  console.log("CLIENTE ID ", clientId);
+  const { barberId, clientId, dependentId, date, time, services, products } = params.data;
 
   // 1. Validar que o barbeiro existe na barbearia
   const barber = await findBarberByIdInBarbershop(params.barbershopId, barberId);
@@ -180,6 +182,7 @@ export async function createAppointmentService(params: {
     barbershopId: params.barbershopId,
     barberId,
     clientId,
+    dependentId: dependentId ?? null,
     startAt,
     endAt,
     notes: params.data.notes,
