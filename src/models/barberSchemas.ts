@@ -7,6 +7,8 @@ export const CreateBarberSchema = joi
     photoUrl: joi.string().uri().allow("", null).optional(),
     commissionPercent: joi.number().integer().min(0).max(100).allow(null).optional(),
     userId: joi.string().uuid().allow(null).optional(),
+    salarioFixo: joi.number().min(0).allow(0).optional(),
+    serviceIds: joi.array().items(joi.string().uuid()).optional(),
   })
   .options({ abortEarly: false, stripUnknown: true });
 
@@ -16,6 +18,8 @@ export const UpdateBarberSchema = joi
     specialty: joi.string().trim().allow("", null).optional(),
     photoUrl: joi.string().uri().allow("", null).optional(),
     commissionPercent: joi.number().integer().min(0).max(100).allow(null).optional(),
+    salarioFixo: joi.number().min(0).allow(0).optional(),
+    serviceIds: joi.array().items(joi.string().uuid()).optional(),
   })
   .min(1)
   .options({ abortEarly: false, stripUnknown: true });

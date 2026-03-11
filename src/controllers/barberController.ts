@@ -64,7 +64,7 @@ export async function updateBarber(req: Request, res: Response) {
   const b = UpdateBarberSchema.validate(req.body, { abortEarly: false });
   if (b.error) return res.status(422).send(joiErrors(b.error));
 
-  console.log("Update barber data:", req.body);
+  console.log("Update barber data:", b.value);
 
   const result = await updateBarberService({
     barbershopId: req.user!.barbershopId,
