@@ -74,7 +74,7 @@ export async function createBarberService(params: {
     displayName: string;
     specialty?: string | null;
     photoUrl?: string | null;
-    salary?: number | null;
+    salarioFixo?: number | null;
     commissionPercent?: number | null;
     userId?: string | null;
   };
@@ -95,7 +95,7 @@ export async function createBarberService(params: {
     specialty: params.data.specialty ?? null,
     photoUrl: params.data.photoUrl ?? null,
     commissionPercent: params.data.commissionPercent ?? null,
-    salary: params.data.salary ?? null,
+    salarioFixo: params.data.salarioFixo ?? null,
     userId: params.data.userId ?? null,
   });
 
@@ -112,6 +112,7 @@ export async function updateBarberService(params: {
     specialty?: string | null;
     photoUrl?: string | null;
     commissionPercent?: number | null;
+    salarioFixo?: number | null;
   };
 }) {
   if (params.actorRole !== "admin") {
@@ -124,7 +125,7 @@ export async function updateBarberService(params: {
   if (params.data.specialty !== undefined) updateData.specialty = params.data.specialty ?? null;
   if (params.data.photoUrl !== undefined) updateData.photo_url = params.data.photoUrl ?? null;
   if (params.data.commissionPercent !== undefined) updateData.commission_percent = params.data.commissionPercent ?? null;
-
+  if (params.data.salarioFixo !== undefined) updateData.salary = params.data.salarioFixo ?? null;
   const updated = await updateBarberInBarbershop(params.barbershopId, params.barberId, updateData);
   if (!updated) throw notFound("Barbeiro não encontrado");
 

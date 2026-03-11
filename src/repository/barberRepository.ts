@@ -72,7 +72,7 @@ export async function createBarberInBarbershop(data: {
   displayName: string;
   specialty?: string | null;
   photoUrl?: string | null;
-  salary?: number | null;
+  salarioFixo?: number | null;
   commissionPercent?: number | null;
   userId?: string | null;
 }) {
@@ -82,7 +82,7 @@ export async function createBarberInBarbershop(data: {
       display_name: data.displayName,
       specialty: data.specialty ?? null,
       photo_url: data.photoUrl ?? null,
-      salary: data.salary ?? null,
+      salary: data.salarioFixo ?? 0,
       commission_percent: data.commissionPercent ?? null,
       user_id: data.userId ?? null,
     },
