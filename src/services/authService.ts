@@ -11,6 +11,7 @@ import {
   findUserByEmail,
   findUserByEmailInBarbershop,
   findUserById,
+  findUserByCpf
 } from "../repository/authRepository.js";
 
 function isPrismaUniqueError(e: any) {
@@ -150,6 +151,9 @@ export async function registerClientService(params: {
   const existing = await findUserByEmailInBarbershop(shop.id, email);
   if (existing) throw conflict("E-mail já cadastrado nessa barbearia");
 
+  const existingCpf = params.cpf ? await findUserByCpf(params.cpf) : null;
+  if (existingCpf) throw conflict("CPF já cadastrado");
+  
   const passwordHash = await bcrypt.hash(params.password, rounds());
 
   const user = await createUser({

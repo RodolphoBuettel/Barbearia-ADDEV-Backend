@@ -7,6 +7,7 @@ import {
   listDependents,
   updateDependent,
 } from "../repository/dependentRepository.js";
+import { findUserByCpf } from "../repository/authRepository.js";
 
 const MAX_DEPENDENTS = 3;
 
@@ -49,7 +50,6 @@ export async function createDependentService(params: {
 }) {
   const cpf = normalizeCpf(params.data.cpf);
 
-  // Verificar limite de dependentes
   const existing = await listDependents({
     barbershopId: params.barbershopId,
     parentId: params.actorId,
@@ -58,12 +58,14 @@ export async function createDependentService(params: {
     throw badRequest(`Limite de ${MAX_DEPENDENTS} dependentes atingido`);
   }
 
-  // Verificar CPF duplicado
   const allDeps = await listAllDependentsInBarbershop(params.barbershopId);
   const cpfExists = allDeps.some((d) => normalizeCpf(d.cpf) === cpf);
   if (cpfExists) {
     throw conflict("Este CPF já está cadastrado como dependente");
   }
+
+  const existingCpf = await findUserByCpf(cpf);
+  if (existingCpf) throw conflict("CPF já cadastrado como usuário");
 
   const created = await createDependent({
     name: params.data.name,

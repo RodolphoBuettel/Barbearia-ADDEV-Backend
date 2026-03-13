@@ -46,6 +46,20 @@ export async function findUserByEmailInBarbershop(barbershopId: string, email: s
   });
 }
 
+export async function findUserByCpf(cpf: string, tx?: Prisma.TransactionClient) {
+  const db = dbClient(tx);
+  return db.users.findFirst({
+    where: { cpf },
+  });
+}
+
+export async function findDependentByCpf(cpf: string, tx?: Prisma.TransactionClient) {
+  const db = dbClient(tx);
+  return db.dependents.findFirst({
+    where: { cpf },
+  });
+}
+
 /** Busca usuário por email (login sem slug) */
 export async function findUserByEmail(email: string, tx?: Prisma.TransactionClient) {
   const db = dbClient(tx);
