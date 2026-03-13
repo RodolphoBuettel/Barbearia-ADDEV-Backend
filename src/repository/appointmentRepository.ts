@@ -119,6 +119,9 @@ export async function createAppointmentTx(data: {
   }[];
 }) {
   return prisma.$transaction(async (tx) => {
+
+    console.log("DADOS RECEBIDOS PARA CRIAÇÃO DE AGENDAMENTO", data.dependentId);
+
     const appointment = await tx.appointments.create({
       data: {
         barbershop_id: data.barbershopId,
