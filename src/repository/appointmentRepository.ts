@@ -124,7 +124,7 @@ export async function createAppointmentTx(data: {
         barbershop_id: data.barbershopId,
         barber_id: data.barberId,
         client_id: data.clientId,
-        // dependent_id: data.dependentId ?? null,
+        dependent_id: data.dependentId ?? null,
         start_at: data.startAt,
         end_at: data.endAt,
         notes: data.notes ?? null,

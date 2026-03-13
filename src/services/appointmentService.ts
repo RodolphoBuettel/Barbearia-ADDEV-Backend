@@ -177,7 +177,7 @@ export async function createAppointmentService(params: {
     throw badRequest("Conflito de horário — barbeiro já possui agendamento neste período");
   }
 
-  console.log("DEPENDENTE" + dependentId);
+  console.log("DEPENDENTE " + dependentId);
 
   // 7. Criar agendamento em transação (appointment + services + products + estoque)
   const created = await createAppointmentTx({
