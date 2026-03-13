@@ -6,7 +6,7 @@ const appointmentSelect = {
   id: true,
   barber_id: true,
   client_id: true,
-  // dependent_id: true,
+  dependent_id: true,
   start_at: true,
   end_at: true,
   status: true,
@@ -20,9 +20,9 @@ const appointmentSelect = {
   users: {
     select: { id: true, name: true, email: true, phone: true },
   },
-  // dependents: {
-  //   select: { id: true, name: true, age: true },
-  // },
+  dependents: {
+    select: { id: true, name: true, age: true },
+  },
   appointment_services: {
     select: {
       id: true,
@@ -127,7 +127,7 @@ export async function createAppointmentTx(data: {
         barbershop_id: data.barbershopId,
         barber_id: data.barberId,
         client_id: data.clientId,
-        dependent_id: data.dependentId ?? null,
+        dependent_id: data.dependentId,
         start_at: data.startAt,
         end_at: data.endAt,
         notes: data.notes ?? null,
