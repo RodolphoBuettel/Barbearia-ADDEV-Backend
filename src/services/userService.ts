@@ -124,6 +124,57 @@ export async function createUserService(params: {
 }
 
 /* ── UPDATE ── */
+// export async function updateUserService(params: {
+//   barbershopId: string;
+//   actorRole: string;
+//   actorId: string;
+//   userId: string;
+//   data: {
+//     name?: string;
+//     email?: string;
+//     phone?: string | null;
+//     cpf?: string | null;
+//     role?: string;
+//     isAdmin?: boolean;
+//     photoUrl?: string | null;
+//     currentPassword?: string;
+//     newPassword?: string;
+//   };
+// }) {
+//   // Admin pode editar qualquer user. Demais só a si mesmos.
+//   if (params.actorRole !== "admin" && params.actorId !== params.userId) {
+//     throw forbidden("Sem permissão para editar este usuário");
+//   }
+
+//   // Se não for admin, não pode mudar role/isAdmin
+//   if (params.actorRole !== "admin") {
+//     delete params.data.role;
+//     delete params.data.isAdmin;
+//   }
+
+//   const updateData: any = {};
+
+//   if (params.data.name !== undefined) updateData.name = params.data.name.trim();
+//   if (params.data.email !== undefined) {
+//     const email = params.data.email.trim().toLowerCase();
+//     // checar se outro user já usa esse email
+//     const exists = await emailExistsInBarbershop(params.barbershopId, email);
+//     const current = await findUserByIdInBarbershop(params.barbershopId, params.userId);
+//     if (exists && current?.email !== email) throw conflict("E-mail já cadastrado nessa barbearia");
+//     updateData.email = email;
+//   }
+//   if (params.data.phone !== undefined) updateData.phone = params.data.phone ?? null;
+//   if (params.data.cpf !== undefined) updateData.cpf = params.data.cpf ?? null;
+//   if (params.data.role !== undefined) updateData.role = params.data.role;
+//   if (params.data.isAdmin !== undefined) updateData.is_admin = params.data.isAdmin;
+//   if (params.data.photoUrl !== undefined) updateData.photo_url = params.data.photoUrl ?? null;
+
+//   const updated = await updateUserInBarbershop(params.barbershopId, params.userId, updateData);
+//   if (!updated) throw notFound("Usuário não encontrado");
+
+//   return serializeUser(updated);
+// }
+
 export async function updateUserService(params: {
   barbershopId: string;
   actorRole: string;
@@ -137,42 +188,71 @@ export async function updateUserService(params: {
     role?: string;
     isAdmin?: boolean;
     photoUrl?: string | null;
+    currentPassword?: string;
+    newPassword?: string;
   };
 }) {
-  // Admin pode editar qualquer user. Demais só a si mesmos.
   if (params.actorRole !== "admin" && params.actorId !== params.userId) {
     throw forbidden("Sem permissão para editar este usuário");
   }
 
-  // Se não for admin, não pode mudar role/isAdmin
   if (params.actorRole !== "admin") {
     delete params.data.role;
     delete params.data.isAdmin;
   }
 
+  const current = await findUserByIdInBarbershop(params.barbershopId, params.userId);
+  if (!current) throw notFound("Usuário não encontrado");
+
   const updateData: any = {};
 
   if (params.data.name !== undefined) updateData.name = params.data.name.trim();
+
   if (params.data.email !== undefined) {
     const email = params.data.email.trim().toLowerCase();
-    // checar se outro user já usa esse email
     const exists = await emailExistsInBarbershop(params.barbershopId, email);
-    const current = await findUserByIdInBarbershop(params.barbershopId, params.userId);
-    if (exists && current?.email !== email) throw conflict("E-mail já cadastrado nessa barbearia");
+
+    if (exists && current.email !== email) {
+      throw conflict("E-mail já cadastrado nessa barbearia");
+    }
+
     updateData.email = email;
   }
+
   if (params.data.phone !== undefined) updateData.phone = params.data.phone ?? null;
   if (params.data.cpf !== undefined) updateData.cpf = params.data.cpf ?? null;
   if (params.data.role !== undefined) updateData.role = params.data.role;
   if (params.data.isAdmin !== undefined) updateData.is_admin = params.data.isAdmin;
   if (params.data.photoUrl !== undefined) updateData.photo_url = params.data.photoUrl ?? null;
 
-  const updated = await updateUserInBarbershop(params.barbershopId, params.userId, updateData);
+  // ALTERAÇÃO DE SENHA
+  if (params.data.currentPassword || params.data.newPassword) {
+    if (!params.data.currentPassword || !params.data.newPassword) {
+      throw conflict("Informe a senha atual e a nova senha");
+    }
+
+    const passwordOk = await bcrypt.compare(
+      params.data.currentPassword,
+      current.password_hash
+    );
+
+    if (!passwordOk) {
+      throw forbidden("Senha atual incorreta");
+    }
+
+    updateData.password_hash = await bcrypt.hash(params.data.newPassword, 10);
+  }
+
+  const updated = await updateUserInBarbershop(
+    params.barbershopId,
+    params.userId,
+    updateData
+  );
+
   if (!updated) throw notFound("Usuário não encontrado");
 
   return serializeUser(updated);
 }
-
 /* ── UPDATE PERMISSIONS ── */
 export async function updatePermissionsService(params: {
   barbershopId: string;

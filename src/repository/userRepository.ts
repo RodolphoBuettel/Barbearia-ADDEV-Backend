@@ -13,6 +13,7 @@ const userSelect = {
   photo_url: true,
   created_at: true,
   updated_at: true,
+  password_hash: true,
   current_barbershop_id: true,
   barbers: {
     select: {

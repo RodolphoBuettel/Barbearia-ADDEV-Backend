@@ -35,13 +35,16 @@ export const CreateUserSchema = joi
 
 export const UpdateUserSchema = joi
   .object({
-    name: joi.string().trim().min(2).optional(),
-    email: joi.string().trim().lowercase().email().optional(),
-    phone: joi.string().trim().allow("", null).optional(),
-    cpf: joi.string().trim().length(11).pattern(/^\d+$/).allow("", null).optional(),
-    role: joi.string().valid("admin", "barber", "receptionist", "client").optional(),
+    name: joi.string().optional(),
+    email: joi.string().email().optional(),
+    phone: joi.string().allow(null, '').optional(),
+    cpf: joi.string().allow(null, '').optional(),
+    role: joi.string().optional(),
     isAdmin: joi.boolean().optional(),
-    photoUrl: joi.string().uri().allow("", null).optional(),
+    photoUrl: joi.string().allow(null, '').optional(),
+
+    currentPassword: joi.string().min(4).optional(),
+    newPassword: joi.string().min(4).optional(),
   })
   .min(1)
   .options({ abortEarly: false, stripUnknown: true });
