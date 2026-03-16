@@ -45,6 +45,7 @@ export const UpdateUserSchema = joi
 
     currentPassword: joi.string().min(4).optional(),
     newPassword: joi.string().min(4).optional(),
+    resetPassword: joi.string().min(4).optional(),
   })
   .min(1)
   .options({ abortEarly: false, stripUnknown: true });

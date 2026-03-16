@@ -190,6 +190,7 @@ export async function updateUserService(params: {
     photoUrl?: string | null;
     currentPassword?: string;
     newPassword?: string;
+    resetPassword?: string;
   };
 }) {
   if (params.actorRole !== "admin" && params.actorId !== params.userId) {
@@ -226,7 +227,13 @@ export async function updateUserService(params: {
   if (params.data.photoUrl !== undefined) updateData.photo_url = params.data.photoUrl ?? null;
 
   // ALTERAÇÃO DE SENHA
-  if (params.data.currentPassword || params.data.newPassword) {
+  if (params.data.resetPassword) {
+    if (!params.data.newPassword) {
+      throw conflict("Informe a nova senha");
+    }
+
+    updateData.password_hash = await bcrypt.hash(params.data.newPassword, 10);
+  } else if (params.data.currentPassword || params.data.newPassword) {
     if (!params.data.currentPassword || !params.data.newPassword) {
       throw conflict("Informe a senha atual e a nova senha");
     }
@@ -242,6 +249,22 @@ export async function updateUserService(params: {
 
     updateData.password_hash = await bcrypt.hash(params.data.newPassword, 10);
   }
+  // if (params.data.currentPassword || params.data.newPassword) {
+  //   if (!params.data.currentPassword || !params.data.newPassword) {
+  //     throw conflict("Informe a senha atual e a nova senha");
+  //   }
+
+  //   const passwordOk = await bcrypt.compare(
+  //     params.data.currentPassword,
+  //     current.password_hash
+  //   );
+
+  //   if (!passwordOk) {
+  //     throw forbidden("Senha atual incorreta");
+  //   }
+
+  //   updateData.password_hash = await bcrypt.hash(params.data.newPassword, 10);
+  // }
 
   const updated = await updateUserInBarbershop(
     params.barbershopId,
