@@ -33,6 +33,25 @@ export const CreateUserSchema = joi
   })
   .options({ abortEarly: false, stripUnknown: true });
 
+const ImportUserRowSchema = joi.object({
+  name: joi.string().trim().min(2).required(),
+  email: joi.string().trim().lowercase().email().required(),
+  phone: joi.string().trim().allow("", null).optional(),
+  cpf: joi.string().trim().length(11).pattern(/^\d+$/).allow("", null).optional(),
+  role: joi.string().valid("admin", "barber", "receptionist", "client").optional(),
+  isAdmin: joi.boolean().optional(),
+  permissions: permissionsObject.optional(),
+  photoUrl: joi.string().uri().allow("", null).optional(),
+});
+
+export const ImportUsersSchema = joi
+  .object({
+    defaultPassword: joi.string().trim().min(4).max(100).optional(),
+    skipExisting: joi.boolean().optional(),
+    rows: joi.array().items(ImportUserRowSchema).min(1).max(500).required(),
+  })
+  .options({ abortEarly: false, stripUnknown: true });
+
 export const UpdateUserSchema = joi
   .object({
     name: joi.string().optional(),

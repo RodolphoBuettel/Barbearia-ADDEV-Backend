@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import {
   CreateServiceSchema,
+  ImportServicesSchema,
   ListServicesQuerySchema,
   ServiceIdParamSchema,
   UpdateServiceSchema,
@@ -10,6 +11,7 @@ import {
   createServiceService,
   deleteServiceService,
   getServiceByIdService,
+  importServicesService,
   listServicesService,
   updateServiceService,
 } from "../services/serviceService.js";
@@ -34,6 +36,21 @@ export async function createService(req: Request, res: Response) {
     active: value.active,
     promotionalPrice: value.promotionalPrice ?? 0,
     covered_by_plan: value.covered_by_plan ?? false,
+  });
+
+  return res.status(201).send(created);
+}
+
+export async function importServices(req: Request, res: Response) {
+  const { error, value } = ImportServicesSchema.validate(req.body, { abortEarly: false });
+  if (error) return res.status(422).send(joiErrors(error));
+
+  const barbershopId = '6aeb6856-c163-4b33-9b8c-4ec043f88008';
+
+  const created = await importServicesService({
+    barbershopId,
+    actorRole: req.user!.role,
+    rows: value.rows,
   });
 
   return res.status(201).send(created);

@@ -1,5 +1,6 @@
 // src/services/serviceService.ts
 import { Prisma } from "@prisma/client";
+import { forbidden } from "../errors/index.js";
 import {
   createService,
   findServiceById,
@@ -56,6 +57,60 @@ export async function createServiceService(barbershopId: string, data: {
   });
 
   return serializeService(created);
+}
+
+export async function importServicesService(params: {
+  barbershopId: string;
+  actorRole: string;
+  rows: Array<{
+    name: string;
+    basePrice: number;
+    durationMinutes: number;
+    comissionPercent?: number | null;
+    promotionalPrice?: number;
+    covered_by_plan?: boolean;
+    imageUrl?: string | null;
+    active?: boolean;
+  }>;
+}) {
+  if (params.actorRole !== "admin") {
+    throw forbidden("Apenas admin pode importar serviços");
+  }
+
+  const created: any[] = [];
+  const errors: Array<{ row: number; name?: string; message: string }> = [];
+
+  for (let i = 0; i < params.rows.length; i += 1) {
+    const rowIndex = i + 1;
+    const row = params.rows[i];
+
+    try {
+      const service = await createServiceService(params.barbershopId, {
+        name: row.name,
+        basePrice: row.basePrice,
+        durationMinutes: row.durationMinutes,
+        comissionPercent: row.comissionPercent ?? null,
+        promotionalPrice: row.promotionalPrice ?? 0,
+        covered_by_plan: row.covered_by_plan ?? false,
+        imageUrl: row.imageUrl ?? null,
+        active: row.active ?? true,
+      });
+      created.push(service);
+    } catch (error: any) {
+      errors.push({
+        row: rowIndex,
+        name: row.name,
+        message: error?.message || "Erro ao criar serviço",
+      });
+    }
+  }
+
+  return {
+    createdCount: created.length,
+    failedCount: errors.length,
+    created,
+    errors,
+  };
 }
 
 export async function listServicesService(params: {

@@ -1,9 +1,15 @@
 import { Request, Response } from "express";
-import { CreateProductSchema, ListProductsQuerySchema, UpdateProductSchema } from "../models/productSchemas.js";
+import {
+    CreateProductSchema,
+    ImportProductsSchema,
+    ListProductsQuerySchema,
+    UpdateProductSchema,
+} from "../models/productSchemas.js";
 import {
     createProductService,
     deleteProductService,
     getProductByIdService,
+    importProductsService,
     listProductsService,
     updateProductService,
 } from "../services/productsService.js";
@@ -20,6 +26,19 @@ export async function createProduct(req: Request, res: Response) {
         barbershopId: req.user!.barbershopId,
         actorRole: req.user!.role,
         data: req.body,
+    });
+
+    return res.status(201).send(result);
+}
+
+export async function importProducts(req: Request, res: Response) {
+    const { error, value } = ImportProductsSchema.validate(req.body, { abortEarly: false });
+    if (error) return res.status(422).send(joiErrors(error));
+
+    const result = await importProductsService({
+        barbershopId: req.user!.barbershopId,
+        actorRole: req.user!.role,
+        rows: value.rows,
     });
 
     return res.status(201).send(result);

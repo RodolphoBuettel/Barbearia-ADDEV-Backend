@@ -4,6 +4,7 @@ import {
   createService,
   deleteService,
   getServiceById,
+  importServices,
   listServices,
   updateService,
 } from "../controllers/serviceController.js";
@@ -20,6 +21,7 @@ route.get("/services/:id", getServiceById);
 
 // create/update/delete: só admin
 route.post("/services", requireAuth, requireAdmin, createService);
+route.post("/services/import", requireAuth, requireAdmin, importServices);
 route.patch("/services/:id", requireAuth, requireAdmin, updateService);
 route.delete("/services/:id", requireAuth, requireAdmin, deleteService);
 

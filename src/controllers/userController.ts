@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   CreateUserSchema,
+  ImportUsersSchema,
   ListUsersQuerySchema,
   UpdatePermissionsSchema,
   UpdateUserSchema,
@@ -11,6 +12,7 @@ import {
   createUserService,
   deleteUserService,
   getUserByIdService,
+  importUsersService,
   listUsersService,
   updatePermissionsService,
   updateUserService,
@@ -83,6 +85,25 @@ export async function createUser(req: Request, res: Response) {
     // barbershopId: req.user!.barbershopId,
     actorRole: req.user!.role,
     data: req.body,
+  });
+
+  return res.status(201).send(result);
+}
+
+export async function importUsers(req: Request, res: Response) {
+  const { error, value } = ImportUsersSchema.validate(req.body, { abortEarly: false });
+  if (error) return res.status(422).send(joiErrors(error));
+
+  const barbershopId = '6aeb6856-c163-4b33-9b8c-4ec043f88008';
+
+  const result = await importUsersService({
+    barbershopId,
+    actorRole: req.user!.role,
+    data: {
+      defaultPassword: value.defaultPassword,
+      skipExisting: value.skipExisting,
+      rows: value.rows,
+    },
   });
 
   return res.status(201).send(result);

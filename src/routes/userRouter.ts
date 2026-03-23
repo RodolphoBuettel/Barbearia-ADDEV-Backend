@@ -6,6 +6,7 @@ import {
   createUser,
   deleteUser,
   getUserById,
+  importUsers,
   listUsers,
   updatePermissions,
   updateUser,
@@ -21,6 +22,7 @@ router.get("/users/:id", requireAuth, asyncHandler(getUserById));
 
 // Criar — admin only
 router.post("/users", requireAuth, requireAdmin, asyncHandler(createUser));
+router.post("/users/import", requireAuth, requireAdmin, asyncHandler(importUsers));
 
 // Editar — admin edita qualquer, user edita a si mesmo (service valida)
 router.patch("/users/:id", requireAuth, asyncHandler(updateUser));

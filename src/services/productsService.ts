@@ -37,6 +37,63 @@ export async function createProductService(params: {
     });
 }
 
+export async function importProductsService(params: {
+    barbershopId: string;
+    actorRole: "admin" | "barber" | "client";
+    rows: Array<{
+        name: string;
+        description?: string | null;
+        category?: string | null;
+        price: number;
+        subscriberDiscount?: number;
+        imageUrl?: string | null;
+        stock?: number;
+        active?: boolean;
+    }>;
+}) {
+    if (params.actorRole !== "admin") throw forbidden("Apenas admin pode importar produto");
+
+    const created: any[] = [];
+    const errors: Array<{ row: number; name?: string; message: string }> = [];
+
+    for (let i = 0; i < params.rows.length; i += 1) {
+        const rowIndex = i + 1;
+        const row = params.rows[i];
+
+        try {
+            const product = await createProductService({
+                barbershopId: params.barbershopId,
+                actorRole: "admin",
+                data: {
+                    name: row.name,
+                    description: row.description ?? null,
+                    category: row.category ?? null,
+                    price: row.price,
+                    subscriberDiscount: row.subscriberDiscount ?? 0,
+                    imageUrl: row.imageUrl ?? null,
+                    stock: row.stock ?? 0,
+                    active: row.active ?? true,
+                },
+            });
+
+            created.push(product);
+        } catch (error: any) {
+            errors.push({
+                row: rowIndex,
+                name: row.name,
+                message: error?.message || "Erro ao criar produto",
+            });
+        }
+    }
+
+    return {
+        createdCount: created.length,
+        failedCount: errors.length,
+        created,
+        errors,
+    };
+}
+
 export async function listProductsService(params: {
     barbershopId: string;
     actorRole: "admin" | "barber" | "client";

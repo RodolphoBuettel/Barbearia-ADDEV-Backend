@@ -123,6 +123,96 @@ export async function createUserService(params: {
   return serializeUser(user);
 }
 
+export async function importUsersService(params: {
+  barbershopId: string;
+  actorRole: string;
+  data: {
+    defaultPassword?: string;
+    skipExisting?: boolean;
+    rows: Array<{
+      name: string;
+      email: string;
+      phone?: string | null;
+      cpf?: string | null;
+      role?: string;
+      isAdmin?: boolean;
+      permissions?: Record<string, boolean>;
+      photoUrl?: string | null;
+    }>;
+  };
+}) {
+  if (params.actorRole !== "admin") {
+    throw forbidden("Apenas admin pode importar usuários");
+  }
+
+  const defaultPassword = params.data.defaultPassword?.trim() || "123456";
+  if (defaultPassword.length < 4) {
+    throw conflict("A senha padrão deve ter no mínimo 4 caracteres");
+  }
+
+  const skipExisting = params.data.skipExisting !== false;
+  const seenEmails = new Set<string>();
+  const created: any[] = [];
+  const errors: Array<{ row: number; email?: string; message: string }> = [];
+  let skippedCount = 0;
+
+  const passwordHash = await bcrypt.hash(defaultPassword, rounds());
+
+  for (let i = 0; i < params.data.rows.length; i += 1) {
+    const rowIndex = i + 1;
+    const row = params.data.rows[i];
+    const email = row.email.trim().toLowerCase();
+
+    if (seenEmails.has(email)) {
+      errors.push({ row: rowIndex, email, message: "E-mail duplicado no arquivo" });
+      continue;
+    }
+    seenEmails.add(email);
+
+    try {
+      const exists = await emailExistsInBarbershop(params.barbershopId, email);
+      if (exists) {
+        if (skipExisting) {
+          skippedCount += 1;
+          continue;
+        }
+        errors.push({ row: rowIndex, email, message: "E-mail já cadastrado nessa barbearia" });
+        continue;
+      }
+
+      const user = await createUserInBarbershop({
+        barbershopId: params.barbershopId,
+        name: row.name.trim(),
+        email,
+        phone: row.phone ?? null,
+        cpf: row.cpf ?? null,
+        role: row.role || "client",
+        isAdmin: row.isAdmin ?? false,
+        passwordHash,
+        permissions: row.permissions,
+        photoUrl: row.photoUrl ?? null,
+      });
+
+      created.push(serializeUser(user));
+    } catch (error: any) {
+      errors.push({
+        row: rowIndex,
+        email,
+        message: error?.message || "Erro ao criar usuário",
+      });
+    }
+  }
+
+  return {
+    createdCount: created.length,
+    skippedCount,
+    failedCount: errors.length,
+    defaultPasswordApplied: defaultPassword,
+    created,
+    errors,
+  };
+}
+
 /* ── UPDATE ── */
 // export async function updateUserService(params: {
 //   barbershopId: string;
