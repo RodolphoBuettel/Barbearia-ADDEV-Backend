@@ -497,90 +497,88 @@ app.get("/pixstatus/:id", async (req, res) => {
 });
 
 app.get('/stripe/subscriptions/by-email', async (req, res) => {
-  try {
-    // const { email } = req.query;
+    try {
+        const { email } = req.query;
 
-    const email = "ana.costa.teste@example.com"; 
+        if (!email) {
+            return res.status(400).json({ error: 'Email é obrigatório.' });
+        }
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email é obrigatório.' });
-    }
-
-    const customers = await stripe.customers.list({
-      email: String(email).trim(),
-      limit: 100,
-    });
-
-    if (!customers.data.length) {
-      return res.json({
-        found: false,
-        subscriptions: [],
-      });
-    }
-
-    const allSubscriptions = [];
-
-    for (const customer of customers.data) {
-      const subs = await stripe.subscriptions.list({
-        customer: customer.id,
-        status: 'all',
-        limit: 100,
-      });
-
-      for (const sub of subs.data) {
-        const firstItem = sub.items?.data?.[0] || null;
-        const productId = firstItem?.price?.product || null;
-        const priceId = firstItem?.price?.id || null;
-
-        allSubscriptions.push({
-          customerId: customer.id,
-          customerEmail: customer.email,
-          customerName: customer.name,
-          subscriptionId: sub.id,
-          status: sub.status,
-          created: sub.created, // timestamp Stripe
-          priceId,
-          productId,
-          items: (sub.items?.data || []).map((item) => ({
-            subscriptionItemId: item.id,
-            priceId: item.price?.id || null,
-            productId: item.price?.product || null,
-            quantity: item.quantity ?? null,
-            interval: item.price?.recurring?.interval || null,
-            intervalCount: item.price?.recurring?.interval_count || null,
-          })),
+        const customers = await stripe.customers.list({
+            email: String(email).trim(),
+            limit: 100,
         });
-      }
+
+        if (!customers.data.length) {
+            return res.json({
+                found: false,
+                subscriptions: [],
+            });
+        }
+
+        const allSubscriptions = [];
+
+        for (const customer of customers.data) {
+            const subs = await stripe.subscriptions.list({
+                customer: customer.id,
+                status: 'all',
+                limit: 100,
+            });
+
+            for (const sub of subs.data) {
+                const firstItem = sub.items?.data?.[0] || null;
+                const productId = firstItem?.price?.product || null;
+                const priceId = firstItem?.price?.id || null;
+
+                allSubscriptions.push({
+                    customerId: customer.id,
+                    customerEmail: customer.email,
+                    customerName: customer.name,
+                    subscriptionId: sub.id,
+                    status: sub.status,
+                    created: sub.created, // timestamp Stripe
+                    priceId,
+                    productId,
+                    items: (sub.items?.data || []).map((item) => ({
+                        subscriptionItemId: item.id,
+                        priceId: item.price?.id || null,
+                        productId: item.price?.product || null,
+                        quantity: item.quantity ?? null,
+                        interval: item.price?.recurring?.interval || null,
+                        intervalCount: item.price?.recurring?.interval_count || null,
+                    })),
+                });
+            }
+        }
+
+        // Mantém apenas a assinatura mais recente por productId
+        const latestByProductId = new Map();
+
+        for (const sub of allSubscriptions) {
+            if (!sub.productId) continue;
+
+            const current = latestByProductId.get(sub.productId);
+
+            if (!current || sub.created > current.created) {
+                latestByProductId.set(sub.productId, sub);
+            }
+        }
+
+        const subscriptions = Array.from(latestByProductId.values())
+            .sort((a, b) => b.created - a.created);
+
+        return res.json({
+            found: subscriptions.length > 0,
+            total: subscriptions.length,
+            subscriptions,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            error: 'Erro ao buscar subscriptions na Stripe.',
+            //   details: error.message,
+        });
     }
-
-    // Mantém apenas a assinatura mais recente por productId
-    const latestByProductId = new Map();
-
-    for (const sub of allSubscriptions) {
-      if (!sub.productId) continue;
-
-      const current = latestByProductId.get(sub.productId);
-
-      if (!current || sub.created > current.created) {
-        latestByProductId.set(sub.productId, sub);
-      }
-    }
-
-    const subscriptions = Array.from(latestByProductId.values())
-      .sort((a, b) => b.created - a.created);
-
-    return res.json({
-      found: subscriptions.length > 0,
-      total: subscriptions.length,
-      subscriptions,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      error: 'Erro ao buscar subscriptions na Stripe.',
-    //   details: error.message,
-    });
-  }
 });
 
 
