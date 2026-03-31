@@ -294,6 +294,6 @@ router.post(
     }
 );
 
-router.get("/subscriptions/active/me", requireAuth, asyncHandler(getMyActiveSubscription));
+router.get("/subscriptions/active/me", asyncHandler(getMyActiveSubscription));
 
 export default router;
