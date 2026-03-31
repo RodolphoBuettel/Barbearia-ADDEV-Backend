@@ -28,6 +28,7 @@ function serialize(plan: any) {
     active: plan.active,
     recommended: plan.recommended,
     mpSubscriptionUrl: plan.mp_subscription_url,
+    mpPreapprovalPlanId: plan.mp_preapproval_plan_id,
     features: (plan.subscription_plan_features ?? []).map((f: any) => f.feature),
     createdAt: plan.created_at,
     updatedAt: plan.updated_at,
@@ -68,6 +69,7 @@ export async function createPlanService(params: {
     active?: boolean;
     recommended?: boolean;
     mpSubscriptionUrl?: string | null;
+    mpPreapprovalPlanId?: string | null;
     features?: string[];
   };
 }) {
@@ -91,6 +93,7 @@ export async function updatePlanService(params: {
     active?: boolean;
     recommended?: boolean;
     mpSubscriptionUrl?: string | null;
+    mpPreapprovalPlanId?: string | null;
     features?: string[];
   };
 }) {

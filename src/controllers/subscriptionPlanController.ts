@@ -17,6 +17,20 @@ function joiErrors(error: any) {
   return error.details?.map((d: any) => d.message) ?? ["Dados inválidos"];
 }
 
+function normalizePlanPayload(body: any) {
+  const mpPreapprovalPlanId =
+    body?.mpPreapprovalPlanId ??
+    body?.mp_preapproval_plan_id ??
+    body?.mp_preapproval_id ??
+    body?.productId ??
+    undefined;
+
+  return {
+    ...body,
+    ...(mpPreapprovalPlanId !== undefined ? { mpPreapprovalPlanId } : {}),
+  };
+}
+
 /* ───── LIST ───── */
 export async function listPlans(req: Request, res: Response) {
   const { error, value } = ListPlansQuerySchema.validate(req.query, { abortEarly: false });
@@ -45,7 +59,8 @@ export async function getPlanById(req: Request, res: Response) {
 
 /* ───── CREATE ───── */
 export async function createPlan(req: Request, res: Response) {
-  const { error, value } = CreatePlanSchema.validate(req.body);
+  const normalizedBody = normalizePlanPayload(req.body);
+  const { error, value } = CreatePlanSchema.validate(normalizedBody);
   if (error) return res.status(422).send(joiErrors(error));
 
   const result = await createPlanService({
@@ -61,7 +76,8 @@ export async function updatePlan(req: Request, res: Response) {
   const p = PlanIdParamSchema.validate(req.params);
   if (p.error) return res.status(422).send(joiErrors(p.error));
 
-  const b = UpdatePlanSchema.validate(req.body, { abortEarly: false });
+  const normalizedBody = normalizePlanPayload(req.body);
+  const b = UpdatePlanSchema.validate(normalizedBody, { abortEarly: false });
   if (b.error) return res.status(422).send(joiErrors(b.error));
 
   const result = await updatePlanService({

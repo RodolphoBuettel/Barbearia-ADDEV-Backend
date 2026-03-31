@@ -10,6 +10,7 @@ export const CreatePlanSchema = joi
     active: joi.boolean().optional().default(true),
     recommended: joi.boolean().optional().default(false),
     mpSubscriptionUrl: joi.string().trim().uri().allow("", null).optional(),
+    mpPreapprovalPlanId: joi.string().trim().allow("", null).optional(),
     features: joi.array().items(joi.string().trim().min(1)).optional().default([]),
   })
   .options({ abortEarly: false, stripUnknown: true });
@@ -24,6 +25,7 @@ export const UpdatePlanSchema = joi
     active: joi.boolean().optional(),
     recommended: joi.boolean().optional(),
     mpSubscriptionUrl: joi.string().trim().uri().allow("", null).optional(),
+    mpPreapprovalPlanId: joi.string().trim().allow("", null).optional(),
     features: joi.array().items(joi.string().trim().min(1)).optional(),
   })
   .min(1)

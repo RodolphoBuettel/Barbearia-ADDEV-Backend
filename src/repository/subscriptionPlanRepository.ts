@@ -1,5 +1,11 @@
 import prisma from "../database/database.js";
 
+function normalizeNullableString(value?: string | null) {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 /* ───── LIST ───── */
 export async function listPlansInBarbershop(params: {
   barbershopId: string;
@@ -45,6 +51,7 @@ export async function createPlanInBarbershop(data: {
   active?: boolean;
   recommended?: boolean;
   mpSubscriptionUrl?: string | null;
+  mpPreapprovalPlanId?: string | null;
   features?: string[];
 }) {
   return prisma.$transaction(async (tx) => {
@@ -59,6 +66,7 @@ export async function createPlanInBarbershop(data: {
         active: data.active ?? true,
         recommended: data.recommended ?? false,
         mp_subscription_url: data.mpSubscriptionUrl ?? null,
+        mp_preapproval_plan_id: normalizeNullableString(data.mpPreapprovalPlanId),
       },
     });
 
@@ -94,6 +102,7 @@ export async function updatePlanInBarbershop(
     active?: boolean;
     recommended?: boolean;
     mpSubscriptionUrl?: string | null;
+    mpPreapprovalPlanId?: string | null;
     features?: string[];
   }
 ) {
@@ -113,6 +122,9 @@ export async function updatePlanInBarbershop(
     if (data.active !== undefined) updateData.active = data.active;
     if (data.recommended !== undefined) updateData.recommended = data.recommended;
     if (data.mpSubscriptionUrl !== undefined) updateData.mp_subscription_url = data.mpSubscriptionUrl;
+    if (data.mpPreapprovalPlanId !== undefined) {
+      updateData.mp_preapproval_plan_id = normalizeNullableString(data.mpPreapprovalPlanId);
+    }
     updateData.updated_at = new Date();
 
     await tx.subscription_plans.update({

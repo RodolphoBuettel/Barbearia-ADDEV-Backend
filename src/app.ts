@@ -526,6 +526,7 @@ app.get('/stripe/subscriptions/by-email', async (req, res) => {
             });
 
             for (const sub of subs.data) {
+                const subscriptionAny = sub as any;
                 const firstItem = sub.items?.data?.[0] || null;
                 const productId = firstItem?.price?.product || null;
                 const priceId = firstItem?.price?.id || null;
@@ -537,6 +538,9 @@ app.get('/stripe/subscriptions/by-email', async (req, res) => {
                     subscriptionId: sub.id,
                     status: sub.status,
                     created: sub.created, // timestamp Stripe
+                    currentPeriodStart: subscriptionAny.current_period_start ?? null,
+                    currentPeriodEnd: subscriptionAny.current_period_end ?? null,
+                    cancelAtPeriodEnd: sub.cancel_at_period_end,
                     priceId,
                     productId,
                     items: (sub.items?.data || []).map((item) => ({
@@ -567,10 +571,56 @@ app.get('/stripe/subscriptions/by-email', async (req, res) => {
         const subscriptions = Array.from(latestByProductId.values())
             .sort((a, b) => b.created - a.created);
 
+        const productIds = subscriptions
+            .map((s) => s.productId)
+            .filter((id): id is string => Boolean(id));
+
+        let planByMpId = new Map<string, any>();
+
+        if (productIds.length > 0) {
+            const plans = await prisma.subscription_plans.findMany({
+                where: {
+                    mp_preapproval_plan_id: {
+                        in: productIds,
+                    },
+                },
+                include: {
+                    subscription_plan_features: {
+                        orderBy: { sort_order: "asc" },
+                    },
+                },
+            });
+
+            planByMpId = new Map(
+                plans
+                    .filter((p) => p.mp_preapproval_plan_id)
+                    .map((p) => [String(p.mp_preapproval_plan_id), p])
+            );
+        }
+
+        const subscriptionsWithPlan = subscriptions.map((sub) => {
+            const matchedPlan = sub.productId
+                ? planByMpId.get(String(sub.productId))
+                : null;
+
+            return {
+                ...sub,
+                plan: matchedPlan
+                    ? {
+                        id: matchedPlan.id,
+                        name: matchedPlan.name,
+                        price: Number(matchedPlan.price),
+                        mpPreapprovalPlanId: matchedPlan.mp_preapproval_plan_id,
+                        features: (matchedPlan.subscription_plan_features ?? []).map((f: any) => f.feature),
+                    }
+                    : null,
+            };
+        });
+
         return res.json({
-            found: subscriptions.length > 0,
-            total: subscriptions.length,
-            subscriptions,
+            found: subscriptionsWithPlan.length > 0,
+            total: subscriptionsWithPlan.length,
+            subscriptions: subscriptionsWithPlan,
         });
     } catch (error) {
         console.error(error);
