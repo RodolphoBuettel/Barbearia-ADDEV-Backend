@@ -265,7 +265,8 @@ app.post('/payment-intents', async (req, res) => {
             return res.status(400).json({ message: 'Valor inválido.' });
         }
 
-        const allowedPaymentMethods = ['card', 'pix'];
+        const pixEnabled = String(process.env.STRIPE_PIX_ENABLED || '').toLowerCase() === 'true';
+        const allowedPaymentMethods = pixEnabled ? ['card', 'pix'] : ['card'];
         const normalizedRequestedMethods = Array.isArray(paymentMethodTypes)
             ? paymentMethodTypes
                 .map((m: any) => String(m).toLowerCase().trim())
@@ -274,7 +275,7 @@ app.post('/payment-intents', async (req, res) => {
 
         const finalPaymentMethodTypes = normalizedRequestedMethods.length
             ? Array.from(new Set(normalizedRequestedMethods))
-            : ['card', 'pix'];
+            : allowedPaymentMethods;
 
         const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(numericAmount * 100), // Stripe usa menor unidade da moeda
