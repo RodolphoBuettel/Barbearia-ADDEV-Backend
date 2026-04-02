@@ -9,7 +9,7 @@ import {
 } from "../repository/dependentRepository.js";
 import { findUserByCpf } from "../repository/authRepository.js";
 
-const MAX_DEPENDENTS = 3;
+const MAX_DEPENDENTS = 5;
 
 /* ─────────────── helpers ─────────────── */
 function serialize(dep: any) {
