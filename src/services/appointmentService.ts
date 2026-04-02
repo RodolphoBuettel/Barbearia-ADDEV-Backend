@@ -77,12 +77,13 @@ export async function listAppointmentsService(params: {
     dateTo?: string;
     page?: number;
     limit?: number;
-    allAppointments?: boolean;  // ✅ NOVO: Flag para retornar TODOS os agendamentos
+    allAppointments?: boolean | string;  // ✅ Pode ser boolean ou string
   };
 }) {
   // 🔴 Se allAppointments=true, retornar TODOS os agendamentos sem filtro de cliente
   // (usado pelo frontend para validar horários disponíveis)
-  if (params.query.allAppointments === true) {
+  const shouldReturnAll = String(params.query.allAppointments).toLowerCase() === 'true';
+  if (shouldReturnAll) {
     const page = params.query.page ?? 1;
     const limit = params.query.limit ?? 100;
 
