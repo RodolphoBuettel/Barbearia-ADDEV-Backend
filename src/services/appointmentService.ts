@@ -77,9 +77,35 @@ export async function listAppointmentsService(params: {
     dateTo?: string;
     page?: number;
     limit?: number;
+    allAppointments?: boolean;  // ✅ NOVO: Flag para retornar TODOS os agendamentos
   };
 }) {
-  // Clientes só veem seus próprios agendamentos
+  // 🔴 Se allAppointments=true, retornar TODOS os agendamentos sem filtro de cliente
+  // (usado pelo frontend para validar horários disponíveis)
+  if (params.query.allAppointments === true) {
+    const page = params.query.page ?? 1;
+    const limit = params.query.limit ?? 100;
+
+    const { items, total } = await listAppointmentsInBarbershop({
+      barbershopId: params.barbershopId,
+      barberId: params.query.barberId,
+      clientId: undefined,  // ✅ Sem filtro de cliente
+      status: params.query.status,
+      dateFrom: params.query.dateFrom,
+      dateTo: params.query.dateTo,
+      page,
+      limit,
+    });
+
+    return {
+      page,
+      limit,
+      total,
+      items: items.map(serializeAppointment),
+    };
+  }
+
+  // Clientes só veem seus próprios agendamentos (comportamento padrão)
   let clientId = params.query.clientId;
   if (params.actorRole === "client") {
     clientId = params.actorId;

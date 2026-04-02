@@ -69,6 +69,7 @@ export const ListAppointmentsQuerySchema = joi
       .optional(),
     page: joi.number().integer().min(1).optional(),
     limit: joi.number().integer().min(1).max(100).optional(),
+    allAppointments: joi.boolean().optional().description("Se true, retorna TODOS os agendamentos da barbearia para validação de disponibilidade"),
   })
   .unknown(true);
 
