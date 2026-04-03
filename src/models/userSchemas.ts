@@ -14,9 +14,12 @@ const permissionsObject = joi.object({
   addServices: joi.boolean().optional(),
   editServices: joi.boolean().optional(),
   managePayments: joi.boolean().optional(),
+  managePayroll: joi.boolean().optional(),
   manageAgendamentos: joi.boolean().optional(),
+  manageBlockedDates: joi.boolean().optional(),
   manageBenefits: joi.boolean().optional(),
   manageSettings: joi.boolean().optional(),
+  manageGallery: joi.boolean().optional(),
 });
 
 export const CreateUserSchema = joi
