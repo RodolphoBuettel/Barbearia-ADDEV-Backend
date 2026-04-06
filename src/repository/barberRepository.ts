@@ -22,6 +22,11 @@ const barberSelect = {
       is_admin: true,
     },
   },
+  barber_services: {
+    select: {
+      service_id: true,
+    },
+  },
 } satisfies Prisma.barbersSelect;
 
 /* ── LIST ── */
@@ -75,6 +80,7 @@ export async function createBarberInBarbershop(data: {
   salarioFixo?: number | null;
   commissionPercent?: number | null;
   userId?: string | null;
+  serviceIds?: string[];
 }) {
   return prisma.barbers.create({
     data: {
@@ -85,9 +91,47 @@ export async function createBarberInBarbershop(data: {
       salary: data.salarioFixo ?? 0,
       commission_percent: data.commissionPercent ?? null,
       user_id: data.userId ?? null,
+      barber_services:
+        data.serviceIds && data.serviceIds.length > 0
+          ? {
+              createMany: {
+                data: data.serviceIds.map((serviceId) => ({ service_id: serviceId })),
+                skipDuplicates: true,
+              },
+            }
+          : undefined,
     },
     select: barberSelect,
   });
+}
+
+export async function replaceBarberServices(
+  barbershopId: string,
+  barberId: string,
+  serviceIds: string[]
+) {
+  const existing = await findBarberByIdInBarbershop(barbershopId, barberId);
+  if (!existing) return null;
+
+  const uniqueServiceIds = [...new Set(serviceIds.map((id) => String(id)))];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.barber_services.deleteMany({
+      where: { barber_id: barberId },
+    });
+
+    if (uniqueServiceIds.length > 0) {
+      await tx.barber_services.createMany({
+        data: uniqueServiceIds.map((serviceId) => ({
+          barber_id: barberId,
+          service_id: serviceId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  });
+
+  return findBarberByIdInBarbershop(barbershopId, barberId);
 }
 
 /* ── UPDATE ── */

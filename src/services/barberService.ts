@@ -5,9 +5,11 @@ import {
   findBarberByIdInBarbershop,
   linkBarberToUser,
   listBarbersInBarbershop,
+  replaceBarberServices,
   updateBarberInBarbershop,
 } from "../repository/barberRepository.js";
 import { findUserByIdInBarbershop } from "../repository/userRepository.js";
+import prisma from "../database/database.js";
 
 function serializeBarber(b: any) {
   return {
@@ -19,6 +21,9 @@ function serializeBarber(b: any) {
     userId: b.user_id,
     barbershopId: b.barbershop_id,
     salarioFixo: b.salary,
+    serviceIds: Array.isArray(b.barber_services)
+      ? b.barber_services.map((item: any) => item.service_id)
+      : [],
     createdAt: b.created_at,
     updatedAt: b.updated_at,
     user: b.users
@@ -78,6 +83,7 @@ export async function createBarberService(params: {
     salarioFixo?: number | null;
     commissionPercent?: number | null;
     userId?: string | null;
+    serviceIds?: string[];
   };
 }) {
   if (params.actorRole !== "admin") {
@@ -90,6 +96,19 @@ export async function createBarberService(params: {
     if (!user) throw notFound("Usuário informado não encontrado nesta barbearia");
   }
 
+  if (Array.isArray(params.data.serviceIds) && params.data.serviceIds.length > 0) {
+    const count = await prisma.services.count({
+      where: {
+        barbershop_id: params.barbershopId,
+        id: { in: params.data.serviceIds },
+      },
+    });
+
+    if (count !== params.data.serviceIds.length) {
+      throw notFound("Um ou mais serviços informados não existem nesta barbearia");
+    }
+  }
+
   const barber = await createBarberInBarbershop({
     barbershopId: params.barbershopId,
     displayName: params.data.displayName.trim(),
@@ -98,6 +117,7 @@ export async function createBarberService(params: {
     commissionPercent: params.data.commissionPercent ?? null,
     salarioFixo: params.data.salarioFixo ?? null,
     userId: params.data.userId ?? null,
+    serviceIds: params.data.serviceIds ?? [],
   });
 
   return serializeBarber(barber);
@@ -114,6 +134,7 @@ export async function updateBarberService(params: {
     photoUrl?: string | null;
     commissionPercent?: number | null;
     salarioFixo?: number | null;
+    serviceIds?: string[];
   };
 }) {
   if (params.actorRole !== "admin") {
@@ -127,6 +148,37 @@ export async function updateBarberService(params: {
   if (params.data.photoUrl !== undefined) updateData.photo_url = params.data.photoUrl ?? null;
   if (params.data.commissionPercent !== undefined) updateData.commission_percent = params.data.commissionPercent ?? null;
   if (params.data.salarioFixo !== undefined) updateData.salary = params.data.salarioFixo ?? null;
+  if (params.data.serviceIds !== undefined) {
+    const sanitizedServiceIds = Array.isArray(params.data.serviceIds)
+      ? params.data.serviceIds.map((id) => String(id))
+      : [];
+
+    if (sanitizedServiceIds.length > 0) {
+      const count = await prisma.services.count({
+        where: {
+          barbershop_id: params.barbershopId,
+          id: { in: sanitizedServiceIds },
+        },
+      });
+
+      if (count !== sanitizedServiceIds.length) {
+        throw notFound("Um ou mais serviços informados não existem nesta barbearia");
+      }
+    }
+
+    const withServices = await replaceBarberServices(
+      params.barbershopId,
+      params.barberId,
+      sanitizedServiceIds,
+    );
+
+    if (!withServices) throw notFound("Barbeiro não encontrado");
+
+    if (Object.keys(updateData).length === 0) {
+      return serializeBarber(withServices);
+    }
+  }
+
   const updated = await updateBarberInBarbershop(params.barbershopId, params.barberId, updateData);
   if (!updated) throw notFound("Barbeiro não encontrado");
 
