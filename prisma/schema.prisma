@@ -421,6 +421,7 @@ model barbershop_home_info {
   schedule_line1   String?
   schedule_line2   String?
   schedule_line3   String?
+  whatsapp_number  String?
   location_title   String?
   location_address String?
   location_city    String?

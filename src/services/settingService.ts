@@ -50,6 +50,7 @@ export async function getHomeInfoService(barbershopId: string) {
         schedule_line1: "Seg - 14h as 20h",
         schedule_line2: "Terça a Sab. - 09h as 20h",
         schedule_line3: "Domingo: Fechado",
+        whatsapp_number: "",
         location_title: "Localização",
         location_address: "Av. val paraíso,1396",
         location_city: "Jangurussu - Fortaleza/CE",
